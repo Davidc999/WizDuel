@@ -1,6 +1,7 @@
 package com.company;
 
 import java.io.Console;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
@@ -15,15 +16,29 @@ public class Main {
         String leftInput, rightInput;
         boolean castDouble = false;
 
+        Player player1 = new Player(1);
+        Player player2 = new Player(2);
+
+
         while(true)
         {
             //printStatus();
-
+            String leftAlignFormat = "| %-9s | %-3s | %-9s | %-3s |%n";
+            System.out.format("+-----------+-----+-----------+-----+%n");
+            //System.out.format(leftAlignFormat,"Player 1:",player1.getMoveString(0),"Player 2:",Gestures.stab.gestureChar + " " +Gestures.S.gestureChar);
+            //System.out.format(leftAlignFormat,"30 hp",player1.getMoveString(1),"15 hp",Gestures.P.gestureChar + " " +Gestures.D.gestureChar);
+            for(int index=0; index < 8; index++)
+            {
+                System.out.format(leftAlignFormat,player1.getStatusString(index),player1.getMoveString(index),player2.getStatusString(index),player2.getMoveString(index));
+            }
+            System.out.format("+-----------+-----+-----------+-----+%n");
             castDouble = false;
             System.out.println("Enter your moves <L R>: ");
-            //hasNext_b = reader.hasNext(".");
+
             leftInput = reader.next(".").toUpperCase();
             rightInput = reader.next(".").toUpperCase();
+
+            player1.addGestures(Gestures.getGestureByChar(leftInput.charAt(0)),Gestures.getGestureByChar(rightInput.charAt(0)));
 
             //TODO: This should go in a function - resolveMove or something.
 
@@ -31,10 +46,12 @@ public class Main {
             rightTree.walkTree(Gestures.getGestureByChar(rightInput.charAt(0)),Gestures.getGestureByChar(leftInput.charAt(0)));
 
             int conflict = checkTwoHandedConflict(leftTree.currLocation.spellsCast,rightTree.currLocation.spellsCast);
-            if(conflict > 0) //TODO: reversing hands in the example has another conflict. It should not be able to cast!
+            if(conflict > 0)
             {
-                if((conflict == 3) && (leftTree.currLocation.spellsCast.size() == 1) && (rightTree.currLocation.spellsCast.size() == 1) && (leftTree.currLocation.spellsCast.get(0) == rightTree.currLocation.spellsCast.get(0)))
-                { castDouble = castSpell(leftTree,"both hands",false); }
+                if((conflict == 3) && (leftTree.currLocation.spellsCast.size() == 1) && (rightTree.currLocation.spellsCast.size() == 1) && (leftTree.currLocation.spellsCast.get(0).equals(rightTree.currLocation.spellsCast.get(0))))
+                { //In case both hands can only cast one spell, and it is the same spell
+                    castDouble = castSpell(leftTree,"both hands",false);
+                }
                 else {
                     System.out.println("There is a conflict between both hands!");
                     System.out.println("Do you want to cast a spell on left hand? y/n");
@@ -42,8 +59,14 @@ public class Main {
                     if (leftInput.equals("Y"))
                     {
                         castDouble = castSpell(leftTree,"left hand",false);
+                        if(!castDouble) { //If left hand used a double gesture, right hand cannot cast anything.
+                                          //If left hand used a single gesture, right hand can also cast single gesture
+                            castSpell(rightTree, "right hand", true);
+                        }
                     }
-                    castSpell(rightTree, "right hand", castDouble);
+                    else {
+                        castSpell(rightTree, "right hand", false);
+                    }
                 }
             }
             else {
@@ -70,7 +93,7 @@ public class Main {
         int selectedSpell;
         if(tree.currLocation.spellsCast.size() == 1)
         {
-            if(disableDouble == false || SpellTree.isDoubleHandedSpell[tree.currLocation.spellsCast.get(0)])
+            if(disableDouble == false || !SpellTree.isDoubleHandedSpell[tree.currLocation.spellsCast.get(0)])
             {
                 System.out.println("Player casts " + SpellTree.spellNames[tree.currLocation.spellsCast.get(0)] + " " + "with " + hand);
                 return SpellTree.isDoubleHandedSpell[tree.currLocation.spellsCast.get(0)];
@@ -78,15 +101,15 @@ public class Main {
             else
                 return false;
         }
-        else // TODO: make sure that surrender is always cast!
+        else
         {
+            //Note: No need to worry about double-handed spells here.
+            //The existing spell tree cannot create a situation where a double and a single spell will be cast at once.
             System.out.println("Select which spell to cast with " + hand +":");
             for(int spellInd = 0; spellInd < tree.currLocation.spellsCast.size(); spellInd++)
             {
-                if(disableDouble == false || SpellTree.isDoubleHandedSpell[tree.currLocation.spellsCast.get(spellInd)])
                 System.out.println(spellInd + " " + SpellTree.spellNames[tree.currLocation.spellsCast.get(spellInd)]);
             }
-            // TODO: player can still cast disallowed spells! fix this. Will probably need another list...
             selectedSpell = reader.nextInt();
             System.out.println("Player casts " + SpellTree.spellNames[tree.currLocation.spellsCast.get(selectedSpell)] +" " + "with " + hand);
             return SpellTree.isDoubleHandedSpell[tree.currLocation.spellsCast.get(selectedSpell)];

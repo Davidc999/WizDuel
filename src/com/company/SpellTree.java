@@ -59,6 +59,7 @@ public class SpellTree {
     {
         //Walk along the entire tree and add subspells
 
+        // Add all spells cast by this node
         for(int spellInd = 0; spellInd < spellList.length; spellInd++)
         {
             if (root.name.length() >= spellList[spellInd].length())
@@ -69,7 +70,7 @@ public class SpellTree {
                 }
             }
         }
-
+        //Go down the tree and recourse
         Gestures gest;
         Node nodeToCheck;
         for(int gestInd = 0; gestInd < Gestures.GESTURES_INDEXED.length-2; gestInd++) {

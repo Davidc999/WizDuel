@@ -9,8 +9,8 @@ public class SpellTree {
             "Charm person", "Summon ogre", "Finger of death", "Haste", "Missile", "Summon goblin", "Anti-spell", "Permanency", "Time stop", "Resist cold", "Fear", "Fire storm",
             "Lightning bolt", "Cause light wounds", "Summon giant", "Cause heavy wounds", "Counter-spell", "Ice storm", "Resist heat", "Protection from evil", "Counter-spell"};
     //public static String[] spellList = {"P","p","DPP"};
-    public static boolean[] isDoubleHandedSpell = {false, false, true, false, false, false, false, false, false, true, false, false, false, false, false, false, false, true, false, true,
-            false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false};
+    public static boolean[] isDoubleHandedSpell = {false, false, true, false, false, false, false, false, true, true, false, true, false, false, false, false, false, true, false, true,
+            false, false, false, false, true, false, false, false, false, true, false, false, true, true, false, false, false, false, true, false, false, false};
 
     public int debug_node_number=0;
 
@@ -136,7 +136,13 @@ public class SpellTree {
 
     public void walkTree(Gestures thisGesture,Gestures otherGesture)
     {
+        //TODO: Add clap verification!
         Node nodeToCheck;
+
+        // Verify clap
+        if((thisGesture == Gestures.C) && (otherGesture!=Gestures.C) )
+        { thisGesture = Gestures.nothing; }
+
         // Handle double gestures
         if((thisGesture == otherGesture) && (thisGesture.gestureIndex <= 3))
         { //Try to walk to a double handed node

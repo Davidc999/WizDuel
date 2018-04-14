@@ -4,13 +4,14 @@ public class SpellTree {
 
     public int debug_node_number=0;
 
-    public Node root, currLocation;
+    public Node root, currLocation, prevlocation;
 
     //Moves: D(0,'D'),P(1,'P'),S(2,'S'),W(3,'W'),C(4,'C'),F(5,'F'),d(6,'d'),p(7,'p'),s(8,'s'),w(9,'w'),stab(10,'>'),nothing(11,'-'); (8 unique, 12 with doubles)
 
     public SpellTree()
     {
         root = new Node("");
+        currLocation = root;
         currLocation = root;
         initTree();
         addSubSpellsToSubtree(root);
@@ -92,8 +93,8 @@ public class SpellTree {
             }
             else
             {
-                gestSequenceToCheck = (root.name + gest.gestureChar);
-                shortcut = deepestChild(gestSequenceToCheck.substring(1)); //No need to check the full sequence, it's already null
+                gestSequenceToCheck = (root.name + gest.gestureChar).toUpperCase();
+                shortcut = deepestChild(gestSequenceToCheck.substring(0)); //The full sequence may still be relevant now that it's all uppercase!
                 if(shortcut != null)
                 {
                     root.addChild(gest,shortcut);
@@ -128,6 +129,7 @@ public class SpellTree {
     public void walkTree(Gestures thisGesture,Gestures otherGesture)
     {
         Node nodeToCheck;
+        prevlocation = currLocation;
 
         // Verify clap
         if((thisGesture == Gestures.C) && (otherGesture!=Gestures.C) )
@@ -157,6 +159,16 @@ public class SpellTree {
         {
             currLocation = nodeToCheck;
         }
+    }
+
+    public void walkBack()
+    {
+        currLocation = prevlocation;
+    }
+
+    public void resetTree()
+    {
+        currLocation = root;
     }
 
 }

@@ -12,6 +12,10 @@ public class Player extends Entity{
     private List<Gestures> lastGesturesRight; // This should be up to length 8
     private SpellTree leftTree = new SpellTree();
     private SpellTree rightTree = new SpellTree();
+    public boolean castShortLightning = false;
+
+    //Data for confusion
+    int prevLeftTarget=-1, prevRightTarget =-1;
 
     public Player(int id)
     {
@@ -21,17 +25,47 @@ public class Player extends Entity{
     }
 
 
-    public void getPlayerInput(PlayerMove[] playerMoves, List<Entity> targetList)
+    public List<PlayerMove> getPlayerInput(List<Entity> targetList)
     {
         String leftInput, rightInput;
         Gestures leftGest, rightGest;
 
+        List<PlayerMove> playerMoves = new ArrayList<>(3);
+
         //Get player input
-        System.out.println("Enter your moves <L R>: ");
-        leftInput = reader.next(".").toUpperCase();
-        rightInput = reader.next(".").toUpperCase();
-        leftGest = Gestures.getGestureByChar(leftInput.charAt(0));
-        rightGest = Gestures.getGestureByChar(rightInput.charAt(0));
+        if(this.hasEffect(StatusEffect.amnesia)) { // Handle amnesia
+            System.out.println("Player " + id + ", you are suffering from "+Main.ANSI_PURPLE+"amnesia"+Main.ANSI_RESET+" and so must repeat the previous gestures!");
+            leftGest = lastGesturesLeft.get(lastGesturesLeft.size()-1);
+            rightGest = lastGesturesRight.get(lastGesturesRight.size()-1);
+        }
+        else //Regular input
+        {
+            if(this.hasEffect(StatusEffect.fear))
+            {System.out.println("Player " + id + ", enter your moves <L R>. Since you are "+Main.ANSI_PURPLE+"afraid "+Main.ANSI_RESET+"C, D, F or S are not allowed:");}
+            else
+            {System.out.println("Player " + id + ", enter your moves <L R>: ");}
+
+            leftInput = reader.next(".").toUpperCase();
+            rightInput = reader.next(".").toUpperCase();
+            leftGest = Gestures.getGestureByChar(leftInput.charAt(0));
+            rightGest = Gestures.getGestureByChar(rightInput.charAt(0));
+        }
+
+        //Handle fear
+        if(this.hasEffect(StatusEffect.fear))
+        {
+            if (Gestures.isBraveGesture(leftGest))
+            {
+                System.out.println("Your left hand freezes in"+Main.ANSI_PURPLE+" fear "+Main.ANSI_RESET+"and ends up doing nothing!");
+                leftGest = Gestures.nothing;
+            }
+            if(Gestures.isBraveGesture(rightGest))
+            {
+                System.out.println("Your right hand freezes in"+Main.ANSI_PURPLE+" fear "+Main.ANSI_RESET+"and ends up doing nothing!");
+                rightGest = Gestures.nothing;
+            }
+        }
+
 
         //Add to last gestures list
         addLastGestures(leftGest,rightGest);
@@ -47,21 +81,33 @@ public class Player extends Entity{
         rightTree.walkTree(rightGest,leftGest);
 
 
-        //In case of multiple completed spell, select spell and handle conflicts
+        //In case of multiple completed spell, select spell and handle
+        PlayerMove newMove;
         Hand conflict = checkTwoHandedConflict(leftTree.currLocation.spellsCast,rightTree.currLocation.spellsCast);
         if(conflict == null) {
             // no conflicts! Each casts 1-handed spell
-            selectSpell(leftTree,playerMoves[Hand.left.handIndex],targetList);
-            selectSpell(rightTree,playerMoves[Hand.right.handIndex],targetList);
-            playerMoves[Hand.both.handIndex].spellIndex = -1;
+            newMove = selectMove(leftTree,targetList,Hand.left,-1);
+            if(newMove != null)
+            {
+                playerMoves.add(newMove);
+                prevLeftTarget = newMove.spellTarget;
+            }
+            newMove = selectMove(rightTree,targetList,Hand.right,-1);
+            if(newMove != null) {
+                playerMoves.add(newMove);
+                prevRightTarget = newMove.spellTarget;
+            }
+
         }
         else if(conflict == Hand.both)
         {
             // Both hands may cast a double-handed spell
             //According to the spell list, this can only mean both hands are casting the same spell together.
-            playerMoves[Hand.left.handIndex].spellIndex = -1;
-            playerMoves[Hand.right.handIndex].spellIndex = -1;
-            selectSpell(rightTree,playerMoves[Hand.both.handIndex],targetList);
+            newMove = selectMove(rightTree,targetList,Hand.both,-1);
+            if(newMove != null) {
+                playerMoves.add(newMove);
+                prevRightTarget = newMove.spellTarget;
+            }
         }
         else
         {
@@ -71,38 +117,137 @@ public class Player extends Entity{
             leftInput = reader.next(".").toUpperCase();
             if (leftInput.equals("Y")) // cast the spell on left
             {
-                selectSpell(leftTree,playerMoves[Hand.left.handIndex],targetList);
-                playerMoves[Hand.right.handIndex].spellIndex = -1;
+                newMove = selectMove(leftTree,targetList,Hand.left,-1);
+                if(newMove != null) {
+                    playerMoves.add(newMove);
+                    prevLeftTarget = newMove.spellTarget;
+                }
             }
             else
             {
-                playerMoves[Hand.left.handIndex].spellIndex = -1;
-                selectSpell(rightTree,playerMoves[Hand.right.handIndex],targetList);
+                newMove = selectMove(rightTree,targetList,Hand.right,-1);
+                if(newMove != null) {
+                    playerMoves.add(newMove);
+                    prevRightTarget = newMove.spellTarget;
+                }
             }
-            playerMoves[Hand.both.handIndex].spellIndex = -1;
         }
-
+        return playerMoves;
         //NOTE: Only one spell can be cast per gesture. Not the following example:
         // P P W S (invisibility - PPws)
         // W W W S (counter-spell wws).
         // Both cannot be cast!
-
     }
 
-    private void selectSpell(SpellTree tree, PlayerMove playerMove, List<Entity> targetList)
+    public List<PlayerMove> handleConfusion(List<Entity> targetList)
+    {
+        String leftInput, rightInput;
+        Gestures prevLeftGest, prevRightGest, newGest, leftGest,rightGest;
+
+        List<PlayerMove> playerMoves = new ArrayList<>(3);
+
+        //Check if confusion is new
+        if(getConfusionHand() == -1)
+            initConfusion();
+
+        //Undo last move
+        prevLeftGest = lastGesturesLeft.remove(lastGesturesLeft.size()-1);
+        prevRightGest = lastGesturesRight.remove(lastGesturesRight.size()-1);
+        leftTree.walkBack();
+        rightTree.walkBack();
+
+        //Confuse one of the gestures
+        newGest = Gestures.GESTURES_INDEXED[getConfusionGesture()];
+        switch (getConfusionHand()){
+            case 0: // left
+                leftGest = newGest;
+                rightGest = prevRightGest;
+                System.out.println("In Player "+id+"'s "+Main.ANSI_PURPLE+"confusion"+Main.ANSI_RESET+" his left hand switches from "+prevLeftGest+" to "+newGest);
+                break;
+            case 1: // right
+                leftGest = prevLeftGest;
+                rightGest = prevRightGest;
+                System.out.println("In Player "+id+"'s "+Main.ANSI_PURPLE+"confusion"+Main.ANSI_RESET+" his right hand switches from "+prevRightGest+" to "+newGest);
+                break;
+            default: // Cannot happen...
+                leftGest = prevLeftGest;
+                rightGest = prevRightGest;
+                break;
+        }
+
+        addLastGestures(leftGest,rightGest);
+
+        leftTree.walkTree(leftGest,rightGest);
+        rightTree.walkTree(rightGest,leftGest);
+
+        //In case of multiple completed spell, select spell and handle
+        PlayerMove newMove;
+        Hand conflict = checkTwoHandedConflict(leftTree.currLocation.spellsCast,rightTree.currLocation.spellsCast);
+        if(conflict == null) {
+            // no conflicts! Each casts 1-handed spell
+            newMove = selectMove(leftTree,targetList,Hand.left,prevLeftTarget);
+            if(newMove != null)
+            {
+                playerMoves.add(newMove);
+            }
+            newMove = selectMove(rightTree,targetList,Hand.right,prevRightTarget);
+            if(newMove != null)
+                playerMoves.add(newMove);
+
+        }
+        else if(conflict == Hand.both)
+        {
+            // Both hands may cast a double-handed spell
+            //According to the spell list, this can only mean both hands are casting the same spell together.
+            newMove = selectMove(rightTree,targetList,Hand.both,prevLeftTarget);
+            if(newMove != null)
+                playerMoves.add(newMove);
+        }
+        else
+        {
+            // One hand can cast a double spell. We must chose between hands.
+            System.out.println("Both hands have completed a spell, but "+conflict+ " must use both hands. You must choose:" );
+            System.out.println("Case the spell on left hand? y/n");
+            leftInput = reader.next(".").toUpperCase();
+            if (leftInput.equals("Y")) // cast the spell on left
+            {
+                newMove = selectMove(leftTree,targetList,Hand.left,prevLeftTarget);
+                if(newMove != null)
+                    playerMoves.add(newMove);
+            }
+            else
+            {
+                newMove = selectMove(rightTree,targetList,Hand.right,prevRightTarget);
+                if(newMove != null)
+                    playerMoves.add(newMove);
+            }
+        }
+        return playerMoves;
+        //NOTE: Only one spell can be cast per gesture. Not the following example:
+        // P P W S (invisibility - PPws)
+        // W W W S (counter-spell wws).
+        // Both cannot be cast!
+    }
+
+    private PlayerMove selectMove(SpellTree tree, List<Entity> targetList, Hand hand, int forcedTarget)
     {
         int selectedSpell;
 
         if(tree.currLocation.spellsCast.size() == 0) //No spells available
         {
-            playerMove.spellIndex = -1;
-            return;
+            return null;
         }
-
+        PlayerMove playerMove = new PlayerMove();
+        playerMove.hand = hand;
+        playerMove.playerID = id;
         if(tree.currLocation.spellsCast.size() == 1)
         {
             playerMove.spellIndex = tree.currLocation.spellsCast.get(0);
-            playerMove.spellTarget = selectTarget(playerMove.spellIndex,targetList);
+            if(forcedTarget == -1) //If we don't have a forced target (due to confusion)
+                playerMove.spellTarget = selectTarget(playerMove.spellIndex,targetList);
+            else
+                playerMove.spellTarget = forcedTarget;
+
         }
         else
         {
@@ -115,8 +260,12 @@ public class Player extends Entity{
             }
             selectedSpell = reader.nextInt();
             playerMove.spellIndex = tree.currLocation.spellsCast.get(selectedSpell);
-            playerMove.spellTarget = selectTarget(playerMove.spellIndex,targetList);
+            if(forcedTarget == -1) //If we don't have a forced target (due to confusion)
+                playerMove.spellTarget = selectTarget(playerMove.spellIndex,targetList);
+            else
+                playerMove.spellTarget = forcedTarget;
         }
+        return playerMove;
     }
 
     private int selectTarget(int spellIndex,List<Entity> targetList)
@@ -126,12 +275,12 @@ public class Player extends Entity{
             System.out.println("Who do you wish to target with "+SpellLibrary.spellNames[spellIndex]+"?");
             for(int i=0; i < targetList.size(); i++)
             {
-                System.out.println(i+". "+targetList.get(i).name);
+                System.out.println(i+1+". "+targetList.get(i).name);
             }
             //TODO: Maybe best to set the target for new monsters as -1 and -2, so that we don't have problems later when trying to resolve moves which summon monsters
-            System.out.println(targetList.size()+". Player 1 new monster");
-            System.out.println(targetList.size()+1+". Player 2 new monster");
-            return reader.nextInt();
+            System.out.println(targetList.size()+1+". Player 1 new monster");
+            System.out.println(targetList.size()+2+". Player 2 new monster");
+            return reader.nextInt()-1;
         }
         return -1;
     }
@@ -179,6 +328,12 @@ public class Player extends Entity{
         if(lastGesturesRight.size() == 8)
             lastGesturesRight.remove(0);
         lastGesturesRight.add(right);
+    }
+
+    public void resetTrees()
+    {
+        leftTree.resetTree();
+        rightTree.resetTree();
     }
 
     public String getMoveString(int Lineindex)

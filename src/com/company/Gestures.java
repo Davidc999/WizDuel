@@ -11,6 +11,11 @@ public enum Gestures {
 
     public static Gestures[] GESTURES_INDEXED = new Gestures[] { D,P,S,W,C,F,d,p,s,w,stab,nothing };
 
+    public static boolean isBraveGesture(Gestures gesture)
+    {
+        return (gesture == D) || (gesture == C) || (gesture == F) || (gesture == S);
+    }
+
     public static Gestures getGestureByChar(char character)
     {
         for(Gestures m: Gestures.values())

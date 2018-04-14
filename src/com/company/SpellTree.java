@@ -2,16 +2,6 @@ package com.company;
 
 public class SpellTree {
 
-    public static String[] spellList = {"CDPW","CSWWS","Cw","DFFDD","DFPW","DFW","DPP","DSF","DSFFFC","DWFFd","DWSSSP","DWWFWC","DWWFWD","FFF","FPSFW","FSSDD","P","p","PDWP","PPws","PSDD",
-    "PSDF","PSFW","PWPFSSSD","PWPWWC","SD","SFW","SPF","SPFPSDW","SPPC","SSFP","SWD","SWWC","WDDC","WFP","WFPSFW","WPFD","WPP","WSSC","WWFP","WWP","WWS",">"};
-    public static String[] spellNames = {"Dispel magic", "Summon elemental", "Magic mirror", "Lightning bolt", "Cure heavy wounds", "Cure light wounds", "Amnesia", "Confusion", "Disease",
-            "Blindness", "Delayed effect", "Raise dead", "Poison", "Paralysis", "Summon troll", "Fireball", "Shield", "Surrender", "Remove enchantment", "Invisibility", "Charm monster",
-            "Charm person", "Summon ogre", "Finger of death", "Haste", "Missile", "Summon goblin", "Anti-spell", "Permanency", "Time stop", "Resist cold", "Fear", "Fire storm",
-            "Lightning bolt", "Cause light wounds", "Summon giant", "Cause heavy wounds", "Counter-spell", "Ice storm", "Resist heat", "Protection from evil", "Counter-spell","stab"};
-    //public static String[] spellList = {"P","p","DPP"};
-    public static boolean[] isDoubleHandedSpell = {false, false, true, false, false, false, false, false, true, true, false, true, false, false, false, false, false, true, false, true,
-            false, false, false, false, true, false, false, false, false, true, false, false, true, true, false, false, false, false, true, false, false, false,false};
-
     public int debug_node_number=0;
 
     public Node root, currLocation;
@@ -34,11 +24,11 @@ public class SpellTree {
         Node tempNode = root;
         String currString;
         Gestures currGest;
-        for(int spellInd = 0; spellInd < spellList.length; spellInd++)
+        for(int spellInd = 0; spellInd < SpellLibrary.spellList.length; spellInd++)
         {
             //Start casting a new spell from the root node
             tempNode = root;
-            currSpell = spellList[spellInd];
+            currSpell = SpellLibrary.spellList[spellInd];
             for(int currCharInd =0; currCharInd < currSpell.length(); currCharInd++)
             {
                 currString = currSpell.substring(0,currCharInd+1);
@@ -60,11 +50,11 @@ public class SpellTree {
         //Walk along the entire tree and add subspells
 
         // Add all spells cast by this node
-        for(int spellInd = 0; spellInd < spellList.length; spellInd++)
+        for(int spellInd = 0; spellInd < SpellLibrary.spellList.length; spellInd++)
         {
-            if (root.name.length() >= spellList[spellInd].length())
+            if (root.name.length() >= SpellLibrary.spellList[spellInd].length())
             {
-                if(root.name.substring(root.name.length() - spellList[spellInd].length()).equals(spellList[spellInd]))
+                if(root.name.substring(root.name.length() - SpellLibrary.spellList[spellInd].length()).equals(SpellLibrary.spellList[spellInd]))
                 {
                     root.spellsCast.add(spellInd);
                 }

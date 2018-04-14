@@ -15,25 +15,25 @@ public class Player extends Entity{
 
     public Player(int id)
     {
-        this.id = id;
-        hp = 15;
+        super(15,id,"Player "+id);
         lastGesturesLeft  = new ArrayList<Gestures>(8);
         lastGesturesRight = new ArrayList<Gestures>(8);
     }
 
 
-    public void getPlayerInput(int[] castSpells, List<Entity> targetList)
+    public void getPlayerInput(PlayerMove[] playerMoves, List<Entity> targetList)
     {
         String leftInput, rightInput;
         Gestures leftGest, rightGest;
 
+        //Get player input
         System.out.println("Enter your moves <L R>: ");
-
         leftInput = reader.next(".").toUpperCase();
         rightInput = reader.next(".").toUpperCase();
         leftGest = Gestures.getGestureByChar(leftInput.charAt(0));
         rightGest = Gestures.getGestureByChar(rightInput.charAt(0));
 
+        //Add to last gestures list
         addLastGestures(leftGest,rightGest);
 
         // Do not allow two stabs
@@ -51,17 +51,17 @@ public class Player extends Entity{
         Hand conflict = checkTwoHandedConflict(leftTree.currLocation.spellsCast,rightTree.currLocation.spellsCast);
         if(conflict == null) {
             // no conflicts! Each casts 1-handed spell
-            castSpells[Hand.left.handIndex] = selectSpell(leftTree);
-            castSpells[Hand.right.handIndex] = selectSpell(rightTree);
-            castSpells[Hand.both.handIndex] = -1;
+            selectSpell(leftTree,playerMoves[Hand.left.handIndex],targetList);
+            selectSpell(rightTree,playerMoves[Hand.right.handIndex],targetList);
+            playerMoves[Hand.both.handIndex].spellIndex = -1;
         }
         else if(conflict == Hand.both)
         {
             // Both hands may cast a double-handed spell
             //According to the spell list, this can only mean both hands are casting the same spell together.
-            castSpells[Hand.left.handIndex] = -1;
-            castSpells[Hand.right.handIndex] = -1;
-            castSpells[Hand.both.handIndex] = selectSpell(rightTree);
+            playerMoves[Hand.left.handIndex].spellIndex = -1;
+            playerMoves[Hand.right.handIndex].spellIndex = -1;
+            selectSpell(rightTree,playerMoves[Hand.both.handIndex],targetList);
         }
         else
         {
@@ -71,15 +71,15 @@ public class Player extends Entity{
             leftInput = reader.next(".").toUpperCase();
             if (leftInput.equals("Y")) // cast the spell on left
             {
-                castSpells[Hand.left.handIndex] = selectSpell(leftTree);
-                castSpells[Hand.right.handIndex] = -1;
+                selectSpell(leftTree,playerMoves[Hand.left.handIndex],targetList);
+                playerMoves[Hand.right.handIndex].spellIndex = -1;
             }
             else
             {
-                castSpells[Hand.left.handIndex] = -1;
-                castSpells[Hand.right.handIndex] = selectSpell(rightTree);
+                playerMoves[Hand.left.handIndex].spellIndex = -1;
+                selectSpell(rightTree,playerMoves[Hand.right.handIndex],targetList);
             }
-            castSpells[Hand.both.handIndex] = -1;
+            playerMoves[Hand.both.handIndex].spellIndex = -1;
         }
 
         //NOTE: Only one spell can be cast per gesture. Not the following example:
@@ -89,58 +89,51 @@ public class Player extends Entity{
 
     }
 
-    private int selectSpell(SpellTree tree)
+    private void selectSpell(SpellTree tree, PlayerMove playerMove, List<Entity> targetList)
     {
         int selectedSpell;
 
         if(tree.currLocation.spellsCast.size() == 0) //No spells available
-            return -1;
+        {
+            playerMove.spellIndex = -1;
+            return;
+        }
 
         if(tree.currLocation.spellsCast.size() == 1)
         {
-            return tree.currLocation.spellsCast.get(0);
+            playerMove.spellIndex = tree.currLocation.spellsCast.get(0);
+            playerMove.spellTarget = selectTarget(playerMove.spellIndex,targetList);
         }
         else
         {
             //Note: No need to worry about double-handed spells here.
             //The existing spell tree cannot create a situation where a double and a single spell will be cast at once.
-            System.out.println("Select which spell to cast with ");
+            System.out.println("Select which spell to cast:");
             for(int spellInd = 0; spellInd < tree.currLocation.spellsCast.size(); spellInd++)
             {
-                System.out.println(spellInd + " " + SpellTree.spellNames[tree.currLocation.spellsCast.get(spellInd)]);
+                System.out.println(spellInd + " " + SpellLibrary.spellNames[tree.currLocation.spellsCast.get(spellInd)]);
             }
             selectedSpell = reader.nextInt();
-            return tree.currLocation.spellsCast.get(selectedSpell);
+            playerMove.spellIndex = tree.currLocation.spellsCast.get(selectedSpell);
+            playerMove.spellTarget = selectTarget(playerMove.spellIndex,targetList);
         }
     }
 
-    private boolean castSpell(SpellTree tree, String hand, boolean disableDouble)
+    private int selectTarget(int spellIndex,List<Entity> targetList)
     {
-        Scanner reader = new Scanner(System.in);
-        int selectedSpell;
-        if(tree.currLocation.spellsCast.size() == 1)
+        if(SpellLibrary.requiresTarget[spellIndex])
         {
-            if(disableDouble == false || !SpellTree.isDoubleHandedSpell[tree.currLocation.spellsCast.get(0)])
+            System.out.println("Who do you wish to target with "+SpellLibrary.spellNames[spellIndex]+"?");
+            for(int i=0; i < targetList.size(); i++)
             {
-                System.out.println("Player casts " + SpellTree.spellNames[tree.currLocation.spellsCast.get(0)] + " " + "with " + hand);
-                return SpellTree.isDoubleHandedSpell[tree.currLocation.spellsCast.get(0)];
+                System.out.println(i+". "+targetList.get(i).name);
             }
-            else
-                return false;
+            //TODO: Maybe best to set the target for new monsters as -1 and -2, so that we don't have problems later when trying to resolve moves which summon monsters
+            System.out.println(targetList.size()+". Player 1 new monster");
+            System.out.println(targetList.size()+1+". Player 2 new monster");
+            return reader.nextInt();
         }
-        else
-        {
-            //Note: No need to worry about double-handed spells here.
-            //The existing spell tree cannot create a situation where a double and a single spell will be cast at once.
-            System.out.println("Select which spell to cast with " + hand +":");
-            for(int spellInd = 0; spellInd < tree.currLocation.spellsCast.size(); spellInd++)
-            {
-                System.out.println(spellInd + " " + SpellTree.spellNames[tree.currLocation.spellsCast.get(spellInd)]);
-            }
-            selectedSpell = reader.nextInt();
-            System.out.println("Player casts " + SpellTree.spellNames[tree.currLocation.spellsCast.get(selectedSpell)] +" " + "with " + hand);
-            return SpellTree.isDoubleHandedSpell[tree.currLocation.spellsCast.get(selectedSpell)];
-        }
+        return -1;
     }
 
     private Hand checkTwoHandedConflict(List<Integer> leftSpells, List<Integer> rightSpells)
@@ -152,7 +145,7 @@ public class Player extends Entity{
         {
             for(int i = 0; i < leftSpells.size(); i++)
             {
-                if(SpellTree.isDoubleHandedSpell[leftSpells.get(i)])
+                if(SpellLibrary.isDoubleHandedSpell[leftSpells.get(i)])
                 {
                     output = Hand.left;
                     break;
@@ -160,7 +153,7 @@ public class Player extends Entity{
             }
             for(int i = 0; i < rightSpells.size(); i++)
             {
-                if(SpellTree.isDoubleHandedSpell[rightSpells.get(i)])
+                if(SpellLibrary.isDoubleHandedSpell[rightSpells.get(i)])
                 {
                     if(output == Hand.left)
                     {

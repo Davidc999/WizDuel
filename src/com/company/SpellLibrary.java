@@ -20,4 +20,9 @@ public class SpellLibrary {
     {
         return (spellindex == 7) || (spellindex == 6) || (spellindex == 20) || (spellindex == 21) || (spellindex == 13) || (spellindex ==31);
     }
+
+    public static boolean isTargetableMonsterSpell(int spellindex)
+    {
+        return (spellindex == 14) || (spellindex == 22) || (spellindex == 26) || (spellindex == 35);
+    }
 }

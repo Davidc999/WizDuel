@@ -19,7 +19,7 @@ public class Player extends Entity{
 
     public Player(int id)
     {
-        super(15,id,"Player "+id);
+        super(15,id,"Player "+(id+1));
         lastGesturesLeft  = new ArrayList<Gestures>(8);
         lastGesturesRight = new ArrayList<Gestures>(8);
     }
@@ -34,16 +34,16 @@ public class Player extends Entity{
 
         //Get player input
         if(this.hasEffect(StatusEffect.amnesia)) { // Handle amnesia
-            System.out.println("Player " + id + ", you are suffering from "+Main.ANSI_PURPLE+"amnesia"+Main.ANSI_RESET+" and so must repeat the previous gestures!");
+            System.out.println(name + ", you are suffering from "+Main.ANSI_PURPLE+"amnesia"+Main.ANSI_RESET+" and so must repeat the previous gestures!");
             leftGest = lastGesturesLeft.get(lastGesturesLeft.size()-1);
             rightGest = lastGesturesRight.get(lastGesturesRight.size()-1);
         }
         else //Regular input
         {
             if(this.hasEffect(StatusEffect.fear))
-            {System.out.println("Player " + id + ", enter your moves <L R>. Since you are "+Main.ANSI_PURPLE+"afraid "+Main.ANSI_RESET+"C, D, F or S are not allowed:");}
+            {System.out.println(name + ", enter your moves <L R>. Since you are "+Main.ANSI_PURPLE+"afraid "+Main.ANSI_RESET+"C, D, F or S are not allowed:");}
             else
-            {System.out.println("Player " + id + ", enter your moves <L R>: ");}
+            {System.out.println(name + ", enter your moves <L R>: ");}
 
             leftInput = reader.next(".").toUpperCase();
             rightInput = reader.next(".").toUpperCase();
@@ -86,13 +86,13 @@ public class Player extends Entity{
         Hand conflict = checkTwoHandedConflict(leftTree.currLocation.spellsCast,rightTree.currLocation.spellsCast);
         if(conflict == null) {
             // no conflicts! Each casts 1-handed spell
-            newMove = selectMove(leftTree,targetList,Hand.left,-1);
+            newMove = selectMove(leftTree,targetList,Hand.left,-3);
             if(newMove != null)
             {
                 playerMoves.add(newMove);
                 prevLeftTarget = newMove.spellTarget;
             }
-            newMove = selectMove(rightTree,targetList,Hand.right,-1);
+            newMove = selectMove(rightTree,targetList,Hand.right,-3);
             if(newMove != null) {
                 playerMoves.add(newMove);
                 prevRightTarget = newMove.spellTarget;
@@ -103,7 +103,7 @@ public class Player extends Entity{
         {
             // Both hands may cast a double-handed spell
             //According to the spell list, this can only mean both hands are casting the same spell together.
-            newMove = selectMove(rightTree,targetList,Hand.both,-1);
+            newMove = selectMove(rightTree,targetList,Hand.both,-3);
             if(newMove != null) {
                 playerMoves.add(newMove);
                 prevRightTarget = newMove.spellTarget;
@@ -117,7 +117,7 @@ public class Player extends Entity{
             leftInput = reader.next(".").toUpperCase();
             if (leftInput.equals("Y")) // cast the spell on left
             {
-                newMove = selectMove(leftTree,targetList,Hand.left,-1);
+                newMove = selectMove(leftTree,targetList,Hand.left,-3);
                 if(newMove != null) {
                     playerMoves.add(newMove);
                     prevLeftTarget = newMove.spellTarget;
@@ -125,7 +125,7 @@ public class Player extends Entity{
             }
             else
             {
-                newMove = selectMove(rightTree,targetList,Hand.right,-1);
+                newMove = selectMove(rightTree,targetList,Hand.right,-3);
                 if(newMove != null) {
                     playerMoves.add(newMove);
                     prevRightTarget = newMove.spellTarget;
@@ -162,12 +162,12 @@ public class Player extends Entity{
             case 0: // left
                 leftGest = newGest;
                 rightGest = prevRightGest;
-                System.out.println("In Player "+id+"'s "+Main.ANSI_PURPLE+"confusion"+Main.ANSI_RESET+" his left hand switches from "+prevLeftGest+" to "+newGest);
+                System.out.println("In "+name+"'s "+Main.ANSI_PURPLE+"confusion"+Main.ANSI_RESET+" his left hand switches from "+prevLeftGest+" to "+newGest);
                 break;
             case 1: // right
                 leftGest = prevLeftGest;
                 rightGest = prevRightGest;
-                System.out.println("In Player "+id+"'s "+Main.ANSI_PURPLE+"confusion"+Main.ANSI_RESET+" his right hand switches from "+prevRightGest+" to "+newGest);
+                System.out.println("In " + name + "'s "+Main.ANSI_PURPLE+"confusion"+Main.ANSI_RESET+" his right hand switches from "+prevRightGest+" to "+newGest);
                 break;
             default: // Cannot happen...
                 leftGest = prevLeftGest;
@@ -229,6 +229,19 @@ public class Player extends Entity{
         // Both cannot be cast!
     }
 
+    public void commandMonsters(List<Entity> targetList)
+    {
+        Monster currMonster;
+        for(int i=2; i<targetList.size();i++)
+        {
+            currMonster = (Monster)targetList.get(i);
+            if(currMonster.owner == id)
+            {
+                currMonster.target = selectTarget(0,targetList,"Who should "+currMonster.name+" attack?");
+            }
+        }
+    }
+
     private PlayerMove selectMove(SpellTree tree, List<Entity> targetList, Hand hand, int forcedTarget)
     {
         int selectedSpell;
@@ -239,14 +252,19 @@ public class Player extends Entity{
         }
         PlayerMove playerMove = new PlayerMove();
         playerMove.hand = hand;
-        playerMove.playerID = id;
+        playerMove.moveMaker= this;
         if(tree.currLocation.spellsCast.size() == 1)
         {
             playerMove.spellIndex = tree.currLocation.spellsCast.get(0);
-            if(forcedTarget == -1) //If we don't have a forced target (due to confusion)
-                playerMove.spellTarget = selectTarget(playerMove.spellIndex,targetList);
+            if(forcedTarget == -3) //If we don't have a forced target (due to confusion)
+                playerMove.spellTarget = selectTarget(playerMove.spellIndex,targetList,"Who do you wish to target with "+SpellLibrary.spellNames[playerMove.spellIndex ]+"?");
             else
                 playerMove.spellTarget = forcedTarget;
+
+            if(SpellLibrary.isTargetableMonsterSpell(playerMove.spellIndex))
+            {
+                playerMove.newMonsterTarget = selectTarget(playerMove.spellIndex,targetList,"You are casting "+SpellLibrary.spellNames[playerMove.spellIndex ]+". Whom would you like him to attack?");
+            }
 
         }
         else
@@ -260,19 +278,24 @@ public class Player extends Entity{
             }
             selectedSpell = reader.nextInt();
             playerMove.spellIndex = tree.currLocation.spellsCast.get(selectedSpell);
-            if(forcedTarget == -1) //If we don't have a forced target (due to confusion)
-                playerMove.spellTarget = selectTarget(playerMove.spellIndex,targetList);
+            if(forcedTarget == -3) //If we don't have a forced target (due to confusion)
+                playerMove.spellTarget = selectTarget(playerMove.spellIndex,targetList,"Who do you wish to target with "+SpellLibrary.spellNames[playerMove.spellIndex ]+"?");
             else
                 playerMove.spellTarget = forcedTarget;
+
+            if(SpellLibrary.isTargetableMonsterSpell(playerMove.spellIndex))
+            {
+                playerMove.newMonsterTarget = selectTarget(playerMove.spellIndex,targetList,"You are casting "+SpellLibrary.spellNames[playerMove.spellIndex ]+". Whom would you like him to attack?");
+            }
         }
         return playerMove;
     }
 
-    private int selectTarget(int spellIndex,List<Entity> targetList)
+    private int selectTarget(int spellIndex,List<Entity> targetList,String prompt)
     {
         if(SpellLibrary.requiresTarget[spellIndex])
         {
-            System.out.println("Who do you wish to target with "+SpellLibrary.spellNames[spellIndex]+"?");
+            System.out.println(prompt);
             for(int i=0; i < targetList.size(); i++)
             {
                 System.out.println(i+1+". "+targetList.get(i).name);
@@ -349,7 +372,7 @@ public class Player extends Entity{
         switch (Lineindex)
         {
             case 0:
-                return "Player" + id + ":";
+                return name + ":";
             case 1:
                 return hp + " hp";
             default:

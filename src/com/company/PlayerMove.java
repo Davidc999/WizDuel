@@ -3,7 +3,8 @@ package com.company;
 public class PlayerMove implements Comparable<PlayerMove> {
     public int spellIndex;
     public int spellTarget;
-    public int playerID;
+    public Player moveMaker;
+    public int newMonsterTarget;
     public Hand hand;
 
     @Override

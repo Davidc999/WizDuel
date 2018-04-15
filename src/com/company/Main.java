@@ -1,6 +1,7 @@
 package com.company;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.PriorityQueue;
 
@@ -19,11 +20,11 @@ public class Main {
     public static void main(String[] args) {
 
         // Instantiate  player 1
-        Player player1 = new Player(1);
+        Player player1 = new Player(0);
         List<PlayerMove> player1Moves;
 
         // Instantiate  player 2
-        Player player2 = new Player(2);
+        Player player2 = new Player(1);
         List<PlayerMove> player2Moves;
 
         //Instantiate target list
@@ -31,19 +32,74 @@ public class Main {
         entities.add(player1);
         entities.add(player2);
 
+
+        //TODO: Add ability to attack new monsters!
         while (true) {
+
             player1.updateStatusEffects();
             player2.updateStatusEffects();
             printStatus(player1, player2);
+
+            //Get player inputs
             player1Moves = player1.getPlayerInput(entities);
+            player1.commandMonsters(entities);
+
             player2Moves = player2.getPlayerInput(entities);
+            player2.commandMonsters(entities);
 
             //Handle confusion
             if(player1.hasEffect(StatusEffect.confusion))
                 player1Moves = player1.handleConfusion(entities);
             if(player2.hasEffect(StatusEffect.confusion))
                 player2Moves = player2.handleConfusion(entities);
-            resolveMoves(player1Moves, player2Moves, entities);
+
+            resolvePlayerMoves(player1Moves, player2Moves, entities);
+            resolveMonsterMoves(entities);
+
+            checkDeaths(entities);
+        }
+
+    }
+
+    private static void checkDeaths(List<Entity> entityList)
+    {
+        Entity entity;
+        for (Iterator<Entity> iterator = entityList.iterator(); iterator.hasNext();)
+        {
+            entity = iterator.next();
+            if(entity.hp <= 0) //Entity has died
+            {
+                if(entity instanceof Player) //A player has died, game ends!
+                {
+                    System.out.println("Player " + entity.id + ANSI_RED + " drops DEAD!" + ANSI_RESET);
+                    System.out.println("The game is over! Player " + (3 - entity.id) + " is the winner!");
+                    System.exit(0);
+                }
+                else //Monster
+                {
+                    System.out.println(entity.name + ANSI_RED + " dies!" + ANSI_RESET);
+                    iterator.remove();
+                }
+            }
+        }
+    }
+
+    private static void resolveMonsterMoves(List<Entity> entityList)
+    {
+        Monster currMonster;
+        for(int i=2;i<entityList.size();i++)
+        {
+            currMonster = (Monster)entityList.get(i);
+            System.out.println(currMonster.name+ ANSI_RED+" attacks "+ANSI_RESET+entityList.get(currMonster.target).name+"...");
+            if(entityList.get(currMonster.target).hasEffect(StatusEffect.shielded))
+            {
+                System.out.println(entityList.get(currMonster.target).name + " is " + ANSI_YELLOW + "shielded" + ANSI_RESET + " and takes no damage.");
+            }
+            else
+            {
+                System.out.println(entityList.get(currMonster.target).name + " is " + ANSI_RED + "hit for "+ currMonster.attackDmg +" damage." + ANSI_RESET);
+                entityList.get(currMonster.target).dealDamage(currMonster.attackDmg);
+            }
         }
 
     }
@@ -58,7 +114,7 @@ public class Main {
         System.out.format("+-----------+-----+-----------+-----+%n");
     }
 
-    private static void resolveMoves(List<PlayerMove> player1Moves, List<PlayerMove> player2Moves, List<Entity> targets) {
+    private static void resolvePlayerMoves(List<PlayerMove> player1Moves, List<PlayerMove> player2Moves, List<Entity> targets) {
         //TODO: Since spells must be resolved in some odd order, might be best to add them into a priority queue at this point and then send them on to some other function for resolution.
         PriorityQueue<PlayerMove> spellsQueue = new PriorityQueue<>();
         final String[] handDescription = {"left hand", "Right hand", "Both hands"};
@@ -92,42 +148,45 @@ public class Main {
             case -1:
                 return;
             case 0: // Dispel Magic
-                System.out.println("Player " + playerMove.playerID + " casts " + ANSI_BLUE + "dispel magic" + ANSI_RESET + " with his " + playerMove.hand + " hand...");
+                System.out.println(playerMove.moveMaker.name  + " casts " + ANSI_BLUE + "dispel magic" + ANSI_RESET + " with his " + playerMove.hand + " hand...");
                 break;
             case 27: //anti-spell
-                System.out.println("Player " + playerMove.playerID + " casts" + ANSI_BLUE + " "+SpellLibrary.spellNames[playerMove.spellIndex] + ANSI_RESET + " at " + targets.get(playerMove.spellTarget).name + " with his " + playerMove.hand + " hand.");
+                System.out.println(playerMove.moveMaker.name + " casts" + ANSI_BLUE + " "+SpellLibrary.spellNames[playerMove.spellIndex] + ANSI_RESET + " at " + targets.get(playerMove.spellTarget).name + " with his " + playerMove.hand + " hand.");
                 break;
             case 2: // Magic mirror
-                System.out.println("Player " + playerMove.playerID + " casts a" + ANSI_YELLOW + " magic mirror" + ANSI_RESET + " with " + playerMove.hand + " hands...");
+                System.out.println(playerMove.moveMaker.name + " casts a" + ANSI_YELLOW + " magic mirror" + ANSI_RESET + " with " + playerMove.hand + " hands...");
                 break;
             case 3: /*Long lightning bolt*/
-                System.out.println("Player " + playerMove.playerID + " fires a" + ANSI_RED + " lightning bolt" + ANSI_RESET + " at " + targets.get(playerMove.spellTarget).name + " with his " + playerMove.hand + " hand...");
+                System.out.println(playerMove.moveMaker.name + " fires a" + ANSI_RED + " lightning bolt" + ANSI_RESET + " at " + targets.get(playerMove.spellTarget).name + " with his " + playerMove.hand + " hand...");
                 break;
             case 6: /*Amnesia*/ case 7: /*Confusion*/ case 31: /*Fear*/
-                System.out.println("Player " + playerMove.playerID + " casts" + ANSI_PURPLE + " "+SpellLibrary.spellNames[playerMove.spellIndex] + ANSI_RESET + " at " + targets.get(playerMove.spellTarget).name + " with his " + playerMove.hand + " hand...");
+                System.out.println(playerMove.moveMaker.name + " casts" + ANSI_PURPLE + " "+SpellLibrary.spellNames[playerMove.spellIndex] + ANSI_RESET + " at " + targets.get(playerMove.spellTarget).name + " with his " + playerMove.hand + " hand...");
                 break;
             case 16: // shield
-                System.out.println("Player " + playerMove.playerID + " casts a" + ANSI_YELLOW + " shield" + ANSI_RESET + " with his " + playerMove.hand + " hand...");
+                System.out.println(playerMove.moveMaker.name + " casts a" + ANSI_YELLOW + " shield" + ANSI_RESET + " with his " + playerMove.hand + " hand...");
                 break;
             case 17: //surrender
-                System.out.println("Player " + playerMove.playerID + ANSI_GREEN + " Surrenders!" + ANSI_RESET);
-                System.out.println("The game is over! Player " + (3 - playerMove.playerID) + " is the winner!");
+                System.out.println(playerMove.moveMaker.name + ANSI_GREEN + " Surrenders!" + ANSI_RESET);
+                System.out.println("The game is over! Player " + (2 - playerMove.moveMaker.id) + " is the winner!");
                 System.exit(0);
                 break;
             case 25: /*Missile */ case 15: /* Fireball */
-                System.out.println("Player " + playerMove.playerID + " launches a " + ANSI_RED + SpellLibrary.spellNames[playerMove.spellIndex] + ANSI_RESET + " at " + targets.get(playerMove.spellTarget).name + " with his " + playerMove.hand + " hand...");
+                System.out.println(playerMove.moveMaker.name + " launches a " + ANSI_RED + SpellLibrary.spellNames[playerMove.spellIndex] + ANSI_RESET + " at " + targets.get(playerMove.spellTarget).name + " with his " + playerMove.hand + " hand...");
+                break;
+            case 26: /*Summon goblin*/
+                System.out.println(playerMove.moveMaker.name + " casts " + ANSI_CYAN + SpellLibrary.spellNames[playerMove.spellIndex] + ANSI_RESET + " at " + targets.get(playerMove.spellTarget).name + " with his " + playerMove.hand + " hand...");
                 break;
             case 33: /* short lightning bolt - cast only once!*/
-                System.out.println("Player " + playerMove.playerID + " fires a" + ANSI_RED + " lightning bolt" + ANSI_RESET + " at " + targets.get(playerMove.spellTarget).name + " with a clap...");
+                System.out.println(playerMove.moveMaker.name + " fires a" + ANSI_RED + " lightning bolt" + ANSI_RESET + " at " + targets.get(playerMove.spellTarget).name + " with a clap...");
                 break;
             case 34: /*Cause light wounds*/ case 36: /*Cause heavy wounds*/
-                System.out.println("Player " + playerMove.playerID + " casts " + ANSI_RED + SpellLibrary.spellNames[playerMove.spellIndex] + ANSI_RESET + " at " + targets.get(playerMove.spellTarget).name + " with his " + playerMove.hand + " hand...");
+                System.out.println(playerMove.moveMaker.name + " casts " + ANSI_RED + SpellLibrary.spellNames[playerMove.spellIndex] + ANSI_RESET + " at " + targets.get(playerMove.spellTarget).name + " with his " + playerMove.hand + " hand...");
                 break;
             case 4: /*cure heavy wounds*/  case 5: /*cure light wounds*/
-                System.out.println("Player " + playerMove.playerID + " casts " + ANSI_GREEN + SpellLibrary.spellNames[playerMove.spellIndex] + ANSI_RESET + " at " + targets.get(playerMove.spellTarget).name + " with his " + playerMove.hand + " hand...");
+                System.out.println(playerMove.moveMaker.name + " casts " + ANSI_GREEN + SpellLibrary.spellNames[playerMove.spellIndex] + ANSI_RESET + " at " + targets.get(playerMove.spellTarget).name + " with his " + playerMove.hand + " hand...");
                 break;
             case 42: // stab
-                System.out.println("Player " + playerMove.playerID + " attempts to" + ANSI_RED + " stab" + ANSI_RESET + " at " + targets.get(playerMove.spellTarget).name + " with his " + playerMove.hand + " hand...");
+                System.out.println(playerMove.moveMaker.name + " attempts to" + ANSI_RED + " stab" + ANSI_RESET + " at " + targets.get(playerMove.spellTarget).name + " with his " + playerMove.hand + " hand...");
                 break;
             default:
                 System.out.println(ANSI_RED + "Spell not yet implemented" + ANSI_RESET);
@@ -138,7 +197,7 @@ public class Main {
         Entity spellTarget = targets.get(playerMove.spellTarget);
         // Short lightning bolt - cast only once!
         if(playerMove.spellIndex == 33) {
-            Player castingPlayer = (Player) targets.get(playerMove.playerID - 1);
+            Player castingPlayer = (Player) targets.get(playerMove.moveMaker.id);
             if (!castingPlayer.castShortLightning) // If this version has not yet been cast
             {
                 castingPlayer.castShortLightning = true;
@@ -169,7 +228,7 @@ public class Main {
         if(spellTarget.hasEffect(StatusEffect.magic_mirror) &&(SpellLibrary.reflectable[playerMove.spellIndex]))
         {
             System.out.println(SpellLibrary.spellNames[playerMove.spellIndex] + " is " + ANSI_YELLOW + "reflected" + ANSI_RESET + " by the magic mirror!");
-            playerMove.spellTarget = playerMove.playerID-1;
+            playerMove.spellTarget = playerMove.moveMaker.id;
             applySpell(playerMove,targets);
             return false;
         }
@@ -237,8 +296,22 @@ public class Main {
                     System.out.println(targets.get(playerMove.spellTarget).name + " takes " + ANSI_RED + "1 damage " + ANSI_RESET + "from missile.");
                     targets.get(playerMove.spellTarget).dealDamage(1);
                 break;
+            case 26: /*Summon goblin*/
+                Monster goblin;
+                Monster ownerMonster;
+                if(targets.get(playerMove.newMonsterTarget) instanceof Player) // Put under comand of player
+                    {goblin = new Monster(1,playerMove.moveMaker.id,playerMove.newMonsterTarget,"Goblin");}
+                else // Put under command of monster's owner;
+                {
+                    ownerMonster = (Monster)targets.get(playerMove.newMonsterTarget);
+                    goblin = new Monster(1, ownerMonster.owner, playerMove.newMonsterTarget, "Goblin");
+                }
+
+                targets.add(goblin);
+                System.out.println(goblin.name+ANSI_CYAN+" springs into existence."+ANSI_RESET +" It obeys "+ targets.get(goblin.owner).name + "'s commands.");
+                break;
             case 27: //anti-spell
-                Player target = (Player)targets.get(2-playerMove.playerID);
+                Player target = (Player)targets.get(3-playerMove.moveMaker.id);
                 System.out.println("All of Player "+target.name + "'s previous gestures are " + ANSI_BLUE + "nullified."+ANSI_RESET);
                 target.resetTrees();
                 break;
@@ -247,7 +320,7 @@ public class Main {
                 targets.get(playerMove.spellTarget).addEffect(StatusEffect.fear);
                 break;
             case 33: // Short lightning bolt - cast only once!
-                Player castingPlayer = (Player) targets.get(playerMove.playerID - 1);
+                Player castingPlayer = (Player) targets.get(playerMove.moveMaker.id);
                 System.out.println(targets.get(playerMove.spellTarget).name + " is zapped for " + ANSI_RED + "5 damage." + ANSI_RESET);
                 targets.get(playerMove.spellTarget).dealDamage(5);
                 System.out.println("This spell cannot be cast again by Player " + castingPlayer.id);

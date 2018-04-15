@@ -32,7 +32,6 @@ public class Main {
         entities.add(player1);
         entities.add(player2);
 
-
         //TODO: Add ability to attack new monsters!
         while (true) {
 
@@ -117,21 +116,18 @@ public class Main {
     private static void resolvePlayerMoves(List<PlayerMove> player1Moves, List<PlayerMove> player2Moves, List<Entity> targets) {
         //TODO: Since spells must be resolved in some odd order, might be best to add them into a priority queue at this point and then send them on to some other function for resolution.
         PriorityQueue<PlayerMove> spellsQueue = new PriorityQueue<>();
-        final String[] handDescription = {"left hand", "Right hand", "Both hands"};
 
         //Add player 1 moves to queue
-        for (int i = 0; i < player1Moves.size(); i++) {
-            spellsQueue.add(player1Moves.get(i));
-        }
+        spellsQueue.addAll(player1Moves);
 
         //Add player 2 moves to queue
-        for (int i = 0; i < player2Moves.size(); i++) {
-            spellsQueue.add(player2Moves.get(i));
-        }
+        spellsQueue.addAll(player2Moves);
 
         //Resolve moves by priority
-        for (PlayerMove playerMove : spellsQueue)
+        for (PlayerMove playerMove : spellsQueue) {
+            //TODO: resolve new monster targets here
             castSpellatTarget(playerMove, targets);
+        }
     }
 
     private static void castSpellatTarget(PlayerMove playerMove, List<Entity> targets) {
@@ -245,16 +241,16 @@ public class Main {
     }
 
     private static void applySpell(PlayerMove playerMove, List<Entity> targets){
+
         switch (playerMove.spellIndex) {
             case -1:
                 return;
             case 0: // Dispel Magic
                 System.out.println(targets.get(playerMove.spellTarget).name + " is" + ANSI_YELLOW + " shielded." + ANSI_RESET +" All enchantments are removed, all magic spells fail!");
                 //TODO: dispel monsters once they are implemented!
-                for(int i=0; i<targets.size(); i++)
-                {
-                    targets.get(i).clearEffects();
-                    targets.get(i).addEffect(StatusEffect.dispel);
+                for (Entity target1 : targets) {
+                    target1.clearEffects();
+                    target1.addEffect(StatusEffect.dispel);
                 }
                 targets.get(playerMove.spellTarget).addEffect(StatusEffect.shielded);
                 break;
@@ -299,6 +295,7 @@ public class Main {
             case 26: /*Summon goblin*/
                 Monster goblin;
                 Monster ownerMonster;
+                Player ownerPlayer;
                 if(targets.get(playerMove.newMonsterTarget) instanceof Player) // Put under comand of player
                     {goblin = new Monster(1,playerMove.moveMaker.id,playerMove.newMonsterTarget,"Goblin");}
                 else // Put under command of monster's owner;
@@ -306,7 +303,8 @@ public class Main {
                     ownerMonster = (Monster)targets.get(playerMove.newMonsterTarget);
                     goblin = new Monster(1, ownerMonster.owner, playerMove.newMonsterTarget, "Goblin");
                 }
-
+                ownerPlayer = (Player)targets.get(goblin.owner);
+                ownerPlayer.newMonster = goblin;
                 targets.add(goblin);
                 System.out.println(goblin.name+ANSI_CYAN+" springs into existence."+ANSI_RESET +" It obeys "+ targets.get(goblin.owner).name + "'s commands.");
                 break;

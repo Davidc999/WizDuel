@@ -2,13 +2,14 @@ package com.company;
 
 public class SpellTree {
 
-    public int debug_node_number=0;
+    private int debug_node_number=0;
 
-    public Node root, currLocation, prevlocation;
+    private Node root, prevlocation;
+    public Node currLocation;
 
     //Moves: D(0,'D'),P(1,'P'),S(2,'S'),W(3,'W'),C(4,'C'),F(5,'F'),d(6,'d'),p(7,'p'),s(8,'s'),w(9,'w'),stab(10,'>'),nothing(11,'-'); (8 unique, 12 with doubles)
 
-    public SpellTree()
+    SpellTree()
     {
         root = new Node("");
         currLocation = root;
@@ -22,7 +23,7 @@ public class SpellTree {
     {
         //Go over all spells to build the tree states
         String currSpell;
-        Node tempNode = root;
+        Node tempNode;
         String currString;
         Gestures currGest;
         for(int spellInd = 0; spellInd < SpellLibrary.spellList.length; spellInd++)
@@ -94,7 +95,7 @@ public class SpellTree {
             else
             {
                 gestSequenceToCheck = (root.name + gest.gestureChar).toUpperCase();
-                shortcut = deepestChild(gestSequenceToCheck.substring(0)); //The full sequence may still be relevant now that it's all uppercase!
+                shortcut = deepestChild(gestSequenceToCheck); //The full sequence may still be relevant now that it's all uppercase!
                 if(shortcut != null)
                 {
                     root.addChild(gest,shortcut);
@@ -106,7 +107,7 @@ public class SpellTree {
     private Node deepestChild(String gestureSequence)
     {
         //This function attempts to find the deepest node within the tree for a given sequence of gestures
-        Node currNode = root;
+        Node currNode;
         String seqToCheck;
         for(int startInd=0; startInd < gestureSequence.length(); startInd++)
         {

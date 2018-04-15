@@ -1,21 +1,19 @@
 package com.company;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class Entity {
 
 int hp, id;
-final int initialHp;
+private final int initialHp;
 public String name;
 private List<StatusEffect> statusEffects;
+Monster newMonster;
 
-public Entity()
-{
-    initialHp = 0;
-}
 
-public Entity(int hp, int id, String name)
+Entity(int hp, int id, String name)
 {
     this.id = id;
     this.name = name;
@@ -54,13 +52,16 @@ public void clearEffects()
 
 public void updateStatusEffects()
 {
-    for (int i=0; i<statusEffects.size(); i++)
+    StatusEffect currEffect;
+    for(Iterator<StatusEffect> iter = statusEffects.iterator();iter.hasNext();)
     {
-        StatusEffect currEffect = statusEffects.get(i);
+        currEffect = iter.next();
         if(currEffect.updateDuration() <= 0)
-            removeEffect(currEffect);
+            iter.remove();
 
     }
+    // Also, reset newMonster
+    newMonster = null;
 }
 
 public void initConfusion()

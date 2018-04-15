@@ -1,7 +1,5 @@
 package com.company;
 
-import java.util.EnumMap;
-
 public enum Gestures {
     D(0,'D'),P(1,'P'),S(2,'S'),W(3,'W'),C(4,'C'),F(5,'F'),d(6,'d'),p(7,'p'),s(8,'s'),w(9,'w'),stab(10,'>'),nothing(11,'-');
 

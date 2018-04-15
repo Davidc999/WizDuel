@@ -9,13 +9,7 @@ public class PlayerMove implements Comparable<PlayerMove> {
 
     @Override
     public int compareTo(PlayerMove o) {
-        if(SpellLibrary.spellPriority[spellIndex] == SpellLibrary.spellPriority[o.spellIndex])
-            return 0;
-        if(SpellLibrary.spellPriority[spellIndex] > SpellLibrary.spellPriority[o.spellIndex])
-            return 1;
-        if(SpellLibrary.spellPriority[spellIndex] < SpellLibrary.spellPriority[o.spellIndex])
-            return -1;
+        return Integer.compare(SpellLibrary.spellPriority[spellIndex], SpellLibrary.spellPriority[o.spellIndex]);
 
-        return 0;
     }
 }

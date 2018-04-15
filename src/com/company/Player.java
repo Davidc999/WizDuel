@@ -15,9 +15,9 @@ public class Player extends Entity{
     public boolean castShortLightning = false;
 
     //Data for confusion
-    int prevLeftTarget=-1, prevRightTarget =-1;
+    private int prevLeftTarget=-1, prevRightTarget =-1;
 
-    public Player(int id)
+    Player(int id)
     {
         super(15,id,"Player "+(id+1));
         lastGesturesLeft  = new ArrayList<Gestures>(8);
@@ -293,6 +293,7 @@ public class Player extends Entity{
 
     private int selectTarget(int spellIndex,List<Entity> targetList,String prompt)
     {
+        int selection;
         if(SpellLibrary.requiresTarget[spellIndex])
         {
             System.out.println(prompt);
@@ -303,9 +304,13 @@ public class Player extends Entity{
             //TODO: Maybe best to set the target for new monsters as -1 and -2, so that we don't have problems later when trying to resolve moves which summon monsters
             System.out.println(targetList.size()+1+". Player 1 new monster");
             System.out.println(targetList.size()+2+". Player 2 new monster");
-            return reader.nextInt()-1;
+            selection =  reader.nextInt();
+            if(selection >= targetList.size())
+                return targetList.size() -selection -1; //return -1 for player 1 new monster, and -2 for player 2 new monster.
+            else
+                return selection -1;
         }
-        return -1;
+        return -3;
     }
 
     private Hand checkTwoHandedConflict(List<Integer> leftSpells, List<Integer> rightSpells)
@@ -315,24 +320,17 @@ public class Player extends Entity{
 
         if(rightSpells.size() > 0 && leftSpells.size() > 0)
         {
-            for(int i = 0; i < leftSpells.size(); i++)
-            {
-                if(SpellLibrary.isDoubleHandedSpell[leftSpells.get(i)])
-                {
+            for (Integer leftSpell : leftSpells) {
+                if (SpellLibrary.isDoubleHandedSpell[leftSpell]) {
                     output = Hand.left;
                     break;
                 }
             }
-            for(int i = 0; i < rightSpells.size(); i++)
-            {
-                if(SpellLibrary.isDoubleHandedSpell[rightSpells.get(i)])
-                {
-                    if(output == Hand.left)
-                    {
+            for (Integer rightSpell : rightSpells) {
+                if (SpellLibrary.isDoubleHandedSpell[rightSpell]) {
+                    if (output == Hand.left) {
                         output = Hand.both;
-                    }
-                    else
-                    {
+                    } else {
                         output = Hand.right;
                     }
                     break;

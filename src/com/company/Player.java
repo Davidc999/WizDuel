@@ -10,16 +10,17 @@ public class Player extends Entity{
 
     private List<Gestures> lastGesturesLeft; // This should be up to length 8
     private List<Gestures> lastGesturesRight; // This should be up to length 8
-    private SpellTree leftTree = new SpellTree();
-    private SpellTree rightTree = new SpellTree();
+    private SpellTree[] spellTrees = new SpellTree[2];
     public boolean castShortLightning = false;
 
     //Data for confusion
-    private int prevLeftTarget=-1, prevRightTarget =-1;
+    private int[] prevTargets = {-1,-1}; //prevTargets[Hand.left.handIndex]=-1, prevTargets[Hand.right.handIndex] =-1;
 
     Player(int id)
     {
         super(15,id,"Player "+(id+1));
+        spellTrees[Hand.left.handIndex] = new SpellTree();
+        spellTrees[Hand.right.handIndex] = new SpellTree();
         lastGesturesLeft  = new ArrayList<Gestures>(8);
         lastGesturesRight = new ArrayList<Gestures>(8);
     }
@@ -66,7 +67,7 @@ public class Player extends Entity{
             }
         }
 
-
+//TODO: Split this area, which is also common to Handle_Confusion out into another function.
         //Add to last gestures list
         addLastGestures(leftGest,rightGest);
 
@@ -77,25 +78,25 @@ public class Player extends Entity{
             rightGest = Gestures.nothing;
         }
 
-        leftTree.walkTree(leftGest,rightGest);
-        rightTree.walkTree(rightGest,leftGest);
+        spellTrees[Hand.left.handIndex].walkTree(leftGest,rightGest);
+        spellTrees[Hand.right.handIndex].walkTree(rightGest,leftGest);
 
 
         //In case of multiple completed spell, select spell and handle
         PlayerMove newMove;
-        Hand conflict = checkTwoHandedConflict(leftTree.currLocation.spellsCast,rightTree.currLocation.spellsCast);
+        Hand conflict = checkTwoHandedConflict(spellTrees[Hand.left.handIndex].currLocation.spellsCast,spellTrees[Hand.right.handIndex].currLocation.spellsCast);
         if(conflict == null) {
             // no conflicts! Each casts 1-handed spell
-            newMove = selectMove(leftTree,targetList,Hand.left,-3);
+            newMove = selectMove(targetList,Hand.left,false);
             if(newMove != null)
             {
                 playerMoves.add(newMove);
-                prevLeftTarget = newMove.spellTarget;
+                prevTargets[Hand.left.handIndex] = newMove.spellTarget;
             }
-            newMove = selectMove(rightTree,targetList,Hand.right,-3);
+            newMove = selectMove(targetList,Hand.right,false);
             if(newMove != null) {
                 playerMoves.add(newMove);
-                prevRightTarget = newMove.spellTarget;
+                prevTargets[Hand.right.handIndex] = newMove.spellTarget;
             }
 
         }
@@ -103,10 +104,10 @@ public class Player extends Entity{
         {
             // Both hands may cast a double-handed spell
             //According to the spell list, this can only mean both hands are casting the same spell together.
-            newMove = selectMove(rightTree,targetList,Hand.both,-3);
+            newMove = selectMove(targetList,Hand.both,false);
             if(newMove != null) {
                 playerMoves.add(newMove);
-                prevRightTarget = newMove.spellTarget;
+                prevTargets[Hand.right.handIndex] = newMove.spellTarget;
             }
         }
         else
@@ -117,18 +118,18 @@ public class Player extends Entity{
             leftInput = reader.next(".").toUpperCase();
             if (leftInput.equals("Y")) // cast the spell on left
             {
-                newMove = selectMove(leftTree,targetList,Hand.left,-3);
+                newMove = selectMove(targetList,Hand.left,false);
                 if(newMove != null) {
                     playerMoves.add(newMove);
-                    prevLeftTarget = newMove.spellTarget;
+                    prevTargets[Hand.left.handIndex] = newMove.spellTarget;
                 }
             }
             else
             {
-                newMove = selectMove(rightTree,targetList,Hand.right,-3);
+                newMove = selectMove(targetList,Hand.right,false);
                 if(newMove != null) {
                     playerMoves.add(newMove);
-                    prevRightTarget = newMove.spellTarget;
+                    prevTargets[Hand.right.handIndex] = newMove.spellTarget;
                 }
             }
         }
@@ -153,8 +154,8 @@ public class Player extends Entity{
         //Undo last move
         prevLeftGest = lastGesturesLeft.remove(lastGesturesLeft.size()-1);
         prevRightGest = lastGesturesRight.remove(lastGesturesRight.size()-1);
-        leftTree.walkBack();
-        rightTree.walkBack();
+        spellTrees[Hand.left.handIndex].walkBack();
+        spellTrees[Hand.right.handIndex].walkBack();
 
         //Confuse one of the gestures
         newGest = Gestures.GESTURES_INDEXED[getConfusionGesture()];
@@ -177,20 +178,20 @@ public class Player extends Entity{
 
         addLastGestures(leftGest,rightGest);
 
-        leftTree.walkTree(leftGest,rightGest);
-        rightTree.walkTree(rightGest,leftGest);
+        spellTrees[Hand.left.handIndex].walkTree(leftGest,rightGest);
+        spellTrees[Hand.right.handIndex].walkTree(rightGest,leftGest);
 
         //In case of multiple completed spell, select spell and handle
         PlayerMove newMove;
-        Hand conflict = checkTwoHandedConflict(leftTree.currLocation.spellsCast,rightTree.currLocation.spellsCast);
+        Hand conflict = checkTwoHandedConflict(spellTrees[Hand.left.handIndex].currLocation.spellsCast,spellTrees[Hand.right.handIndex].currLocation.spellsCast);
         if(conflict == null) {
             // no conflicts! Each casts 1-handed spell
-            newMove = selectMove(leftTree,targetList,Hand.left,prevLeftTarget);
+            newMove = selectMove(targetList,Hand.left,true);
             if(newMove != null)
             {
                 playerMoves.add(newMove);
             }
-            newMove = selectMove(rightTree,targetList,Hand.right,prevRightTarget);
+            newMove = selectMove(targetList,Hand.right,true);
             if(newMove != null)
                 playerMoves.add(newMove);
 
@@ -199,7 +200,7 @@ public class Player extends Entity{
         {
             // Both hands may cast a double-handed spell
             //According to the spell list, this can only mean both hands are casting the same spell together.
-            newMove = selectMove(rightTree,targetList,Hand.both,prevLeftTarget);
+            newMove = selectMove(targetList,Hand.both,true);
             if(newMove != null)
                 playerMoves.add(newMove);
         }
@@ -211,13 +212,13 @@ public class Player extends Entity{
             leftInput = reader.next(".").toUpperCase();
             if (leftInput.equals("Y")) // cast the spell on left
             {
-                newMove = selectMove(leftTree,targetList,Hand.left,prevLeftTarget);
+                newMove = selectMove(targetList,Hand.left,true);
                 if(newMove != null)
                     playerMoves.add(newMove);
             }
             else
             {
-                newMove = selectMove(rightTree,targetList,Hand.right,prevRightTarget);
+                newMove = selectMove(targetList,Hand.right,true);
                 if(newMove != null)
                     playerMoves.add(newMove);
             }
@@ -242,24 +243,24 @@ public class Player extends Entity{
         }
     }
 
-    private PlayerMove selectMove(SpellTree tree, List<Entity> targetList, Hand hand, int forcedTarget)
+    private PlayerMove selectMove(List<Entity> targetList, Hand hand, boolean forceTarget)
     {
         int selectedSpell;
 
-        if(tree.currLocation.spellsCast.size() == 0) //No spells available
+        if(spellTrees[hand.handIndex].currLocation.spellsCast.size() == 0) //No spells available
         {
             return null;
         }
         PlayerMove playerMove = new PlayerMove();
         playerMove.hand = hand;
         playerMove.moveMaker= this;
-        if(tree.currLocation.spellsCast.size() == 1)
+        if(spellTrees[hand.handIndex].currLocation.spellsCast.size() == 1)
         {
-            playerMove.spellIndex = tree.currLocation.spellsCast.get(0);
-            if(forcedTarget == -3) //If we don't have a forced target (due to confusion)
-                playerMove.spellTarget = selectTarget(playerMove.spellIndex,targetList,"Who do you wish to target with "+SpellLibrary.spellNames[playerMove.spellIndex ]+"?");
+            playerMove.spellIndex = spellTrees[hand.handIndex].currLocation.spellsCast.get(0);
+            if(forceTarget) // If we have a forced target (due to confusion)
+                playerMove.spellTarget = prevTargets[hand.handIndex];
             else
-                playerMove.spellTarget = forcedTarget;
+                playerMove.spellTarget = selectTarget(playerMove.spellIndex,targetList,"Who do you wish to target with "+SpellLibrary.spellNames[playerMove.spellIndex ]+"?");
 
             if(SpellLibrary.isTargetableMonsterSpell(playerMove.spellIndex))
             {
@@ -272,16 +273,17 @@ public class Player extends Entity{
             //Note: No need to worry about double-handed spells here.
             //The existing spell tree cannot create a situation where a double and a single spell will be cast at once.
             System.out.println("Select which spell to cast:");
-            for(int spellInd = 0; spellInd < tree.currLocation.spellsCast.size(); spellInd++)
+            for(int spellInd = 0; spellInd < spellTrees[hand.handIndex].currLocation.spellsCast.size(); spellInd++)
             {
-                System.out.println(spellInd + " " + SpellLibrary.spellNames[tree.currLocation.spellsCast.get(spellInd)]);
+                System.out.println(spellInd + " " + SpellLibrary.spellNames[spellTrees[hand.handIndex].currLocation.spellsCast.get(spellInd)]);
             }
             selectedSpell = reader.nextInt();
-            playerMove.spellIndex = tree.currLocation.spellsCast.get(selectedSpell);
-            if(forcedTarget == -3) //If we don't have a forced target (due to confusion)
-                playerMove.spellTarget = selectTarget(playerMove.spellIndex,targetList,"Who do you wish to target with "+SpellLibrary.spellNames[playerMove.spellIndex ]+"?");
+            playerMove.spellIndex = spellTrees[hand.handIndex].currLocation.spellsCast.get(selectedSpell);
+            if(forceTarget) //If we have a forced target (due to confusion)
+                playerMove.spellTarget = prevTargets[hand.handIndex];
             else
-                playerMove.spellTarget = forcedTarget;
+                playerMove.spellTarget = selectTarget(playerMove.spellIndex,targetList,"Who do you wish to target with "+SpellLibrary.spellNames[playerMove.spellIndex ]+"?");
+
 
             if(SpellLibrary.isTargetableMonsterSpell(playerMove.spellIndex))
             {
@@ -305,8 +307,8 @@ public class Player extends Entity{
             System.out.println(targetList.size()+1+". Player 1 new monster");
             System.out.println(targetList.size()+2+". Player 2 new monster");
             selection =  reader.nextInt();
-            if(selection >= targetList.size())
-                return targetList.size() -selection -1; //return -1 for player 1 new monster, and -2 for player 2 new monster.
+            if(selection > targetList.size())
+                return targetList.size() -selection; //return -1 for player 1 new monster, and -2 for player 2 new monster.
             else
                 return selection -1;
         }
@@ -353,8 +355,8 @@ public class Player extends Entity{
 
     public void resetTrees()
     {
-        leftTree.resetTree();
-        rightTree.resetTree();
+        spellTrees[Hand.left.handIndex].resetTree();
+        spellTrees[Hand.right.handIndex].resetTree();
     }
 
     public String getMoveString(int Lineindex)

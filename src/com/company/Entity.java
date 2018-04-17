@@ -34,18 +34,18 @@ public boolean hasConflictingStatusEffect()
             statusEffects.contains(StatusEffect.paralyzed) || statusEffects.contains(StatusEffect.charmed);
 }
 
-public void addEffect(StatusEffect effect)
+public void addStatusEffect(StatusEffect effect)
 {
     if(!hasEffect(effect))
         statusEffects.add(effect);
 }
 
-public void removeEffect(StatusEffect effect)
+public void removeStatusEffect(StatusEffect effect)
 {
     statusEffects.remove(effect);
 }
 
-public void clearEffects()
+public void clearStatusEffects()
 {
     statusEffects.clear();
 }

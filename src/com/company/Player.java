@@ -26,7 +26,7 @@ public class Player extends Entity{
     }
 
 
-    public List<PlayerMove> getPlayerInput(List<Entity> targetList)
+    public List<PlayerMove> getPlayerMoves(List<Entity> targetList)
     {
         String leftInput, rightInput;
         Gestures leftGest, rightGest;
@@ -67,77 +67,8 @@ public class Player extends Entity{
             }
         }
 
-//TODO: Split this area, which is also common to Handle_Confusion out into another function.
-        //Add to last gestures list
-        addLastGestures(leftGest,rightGest);
-
-        // Do not allow two stabs
-        if((rightGest == Gestures.stab) && (leftGest == Gestures.stab))
-        {
-            System.err.println("A wizard only has 1 dagger");
-            rightGest = Gestures.nothing;
-        }
-
-        spellTrees[Hand.left.handIndex].walkTree(leftGest,rightGest);
-        spellTrees[Hand.right.handIndex].walkTree(rightGest,leftGest);
-
-
-        //In case of multiple completed spell, select spell and handle
-        PlayerMove newMove;
-        Hand conflict = checkTwoHandedConflict(spellTrees[Hand.left.handIndex].currLocation.spellsCast,spellTrees[Hand.right.handIndex].currLocation.spellsCast);
-        if(conflict == null) {
-            // no conflicts! Each casts 1-handed spell
-            newMove = selectMove(targetList,Hand.left,false);
-            if(newMove != null)
-            {
-                playerMoves.add(newMove);
-                prevTargets[Hand.left.handIndex] = newMove.spellTarget;
-            }
-            newMove = selectMove(targetList,Hand.right,false);
-            if(newMove != null) {
-                playerMoves.add(newMove);
-                prevTargets[Hand.right.handIndex] = newMove.spellTarget;
-            }
-
-        }
-        else if(conflict == Hand.both)
-        {
-            // Both hands may cast a double-handed spell
-            //According to the spell list, this can only mean both hands are casting the same spell together.
-            newMove = selectMove(targetList,Hand.both,false);
-            if(newMove != null) {
-                playerMoves.add(newMove);
-                prevTargets[Hand.right.handIndex] = newMove.spellTarget;
-            }
-        }
-        else
-        {
-            // One hand can cast a double spell. We must chose between hands.
-            System.out.println("Both hands have completed a spell, but "+conflict+ " must use both hands. You must choose:" );
-            System.out.println("Case the spell on left hand? y/n");
-            leftInput = reader.next(".").toUpperCase();
-            if (leftInput.equals("Y")) // cast the spell on left
-            {
-                newMove = selectMove(targetList,Hand.left,false);
-                if(newMove != null) {
-                    playerMoves.add(newMove);
-                    prevTargets[Hand.left.handIndex] = newMove.spellTarget;
-                }
-            }
-            else
-            {
-                newMove = selectMove(targetList,Hand.right,false);
-                if(newMove != null) {
-                    playerMoves.add(newMove);
-                    prevTargets[Hand.right.handIndex] = newMove.spellTarget;
-                }
-            }
-        }
+        playerMoves = handleGestures(targetList,leftGest,rightGest,false);
         return playerMoves;
-        //NOTE: Only one spell can be cast per gesture. Not the following example:
-        // P P W S (invisibility - PPws)
-        // W W W S (counter-spell wws).
-        // Both cannot be cast!
     }
 
     public List<PlayerMove> handleConfusion(List<Entity> targetList)
@@ -176,51 +107,70 @@ public class Player extends Entity{
                 break;
         }
 
-        addLastGestures(leftGest,rightGest);
+        playerMoves = handleGestures(targetList,leftGest,rightGest,true);
+        return playerMoves;
+    }
 
-        spellTrees[Hand.left.handIndex].walkTree(leftGest,rightGest);
-        spellTrees[Hand.right.handIndex].walkTree(rightGest,leftGest);
+    private List<PlayerMove> handleGestures(List<Entity> targetList,Gestures leftGest, Gestures rightGest, boolean usePreviousTarget) {
+
+        List<PlayerMove> playerMoves = new ArrayList<>(3);
+        String leftInput;
+
+        //Add to last gestures list
+        addLastGestures(leftGest, rightGest);
+
+        // Do not allow two stabs
+        if ((rightGest == Gestures.stab) && (leftGest == Gestures.stab)) {
+            System.err.println("A wizard only has 1 dagger");
+            rightGest = Gestures.nothing;
+        }
+
+        spellTrees[Hand.left.handIndex].walkTree(leftGest, rightGest);
+        spellTrees[Hand.right.handIndex].walkTree(rightGest, leftGest);
+
 
         //In case of multiple completed spell, select spell and handle
         PlayerMove newMove;
-        Hand conflict = checkTwoHandedConflict(spellTrees[Hand.left.handIndex].currLocation.spellsCast,spellTrees[Hand.right.handIndex].currLocation.spellsCast);
-        if(conflict == null) {
+        Hand conflict = checkTwoHandedConflict(spellTrees[Hand.left.handIndex].currLocation.spellsCast, spellTrees[Hand.right.handIndex].currLocation.spellsCast);
+        if (conflict == null) {
             // no conflicts! Each casts 1-handed spell
-            newMove = selectMove(targetList,Hand.left,true);
-            if(newMove != null)
-            {
+            newMove = selectMove(targetList, Hand.left, usePreviousTarget);
+            if (newMove != null) {
                 playerMoves.add(newMove);
+                prevTargets[Hand.left.handIndex] = newMove.spellTarget;
             }
-            newMove = selectMove(targetList,Hand.right,true);
-            if(newMove != null)
+            newMove = selectMove(targetList, Hand.right, usePreviousTarget);
+            if (newMove != null) {
                 playerMoves.add(newMove);
+                prevTargets[Hand.right.handIndex] = newMove.spellTarget;
+            }
 
-        }
-        else if(conflict == Hand.both)
-        {
+        } else if (conflict == Hand.both) {
             // Both hands may cast a double-handed spell
             //According to the spell list, this can only mean both hands are casting the same spell together.
-            newMove = selectMove(targetList,Hand.both,true);
-            if(newMove != null)
+            newMove = selectMove(targetList, Hand.both, usePreviousTarget);
+            if (newMove != null) {
                 playerMoves.add(newMove);
-        }
-        else
-        {
+                prevTargets[Hand.right.handIndex] = newMove.spellTarget;
+            }
+        } else {
             // One hand can cast a double spell. We must chose between hands.
-            System.out.println("Both hands have completed a spell, but "+conflict+ " must use both hands. You must choose:" );
+            System.out.println("Both hands have completed a spell, but " + conflict + " must use both hands. You must choose:");
             System.out.println("Case the spell on left hand? y/n");
             leftInput = reader.next(".").toUpperCase();
             if (leftInput.equals("Y")) // cast the spell on left
             {
-                newMove = selectMove(targetList,Hand.left,true);
-                if(newMove != null)
+                newMove = selectMove(targetList, Hand.left, usePreviousTarget);
+                if (newMove != null) {
                     playerMoves.add(newMove);
-            }
-            else
-            {
-                newMove = selectMove(targetList,Hand.right,true);
-                if(newMove != null)
+                    prevTargets[Hand.left.handIndex] = newMove.spellTarget;
+                }
+            } else {
+                newMove = selectMove(targetList, Hand.right, usePreviousTarget);
+                if (newMove != null) {
                     playerMoves.add(newMove);
+                    prevTargets[Hand.right.handIndex] = newMove.spellTarget;
+                }
             }
         }
         return playerMoves;

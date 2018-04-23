@@ -45,6 +45,9 @@ public class Game {
         //TODO: Make sure remove enchantment works after all enchantment spells...
         //TODO: Confusion, amnesia, paralysis effects on monsters!
 
+
+        //TODO: I may have a HUUUGE enum problem with status effects. It seems that maybe they cannot each have an individual duration.... Try to paralyze both players for different duration to see!
+
         while (true) {
 
             // Reset global effects
@@ -53,7 +56,7 @@ public class Game {
             // Update player status effects
             player1.updateStatusEffects();
             player2.updateStatusEffects();
-            printStatus();
+//            printStatus();
 
             //Get player inputs
             player1Moves = player1.getPlayerMoves(entities);
@@ -68,6 +71,7 @@ public class Game {
             if (player2.hasEffect(StatusEffect.confusion))
                 player2Moves = player2.handleConfusion(entities);
 
+            printStatus();
             resolvePlayerMoves();
             resolveMonsterMoves();
 
@@ -109,15 +113,18 @@ public class Game {
         for(int i=2;i<entities.size();i++)
         {
             currMonster = (Monster)entities.get(i);
-            System.out.println(currMonster.name+ Main.ANSI_RED+" attacks "+Main.ANSI_RESET+entities.get(currMonster.target).name+"...");
-            if(entities.get(currMonster.target).hasEffect(StatusEffect.shielded))
+            if(currMonster.hasEffect(StatusEffect.paralyzed)) // paralyzed mosters can't attack
             {
-                System.out.println(entities.get(currMonster.target).name + " is " + Main.ANSI_YELLOW + "shielded" + Main.ANSI_RESET + " and takes no damage.");
+                System.out.println(currMonster.name + " is " + Main.ANSI_PURPLE + "paralyzed" + Main.ANSI_RESET + " and cannot attack.");
             }
-            else
-            {
-                System.out.println(entities.get(currMonster.target).name + " is " + Main.ANSI_RED + "hit for "+ currMonster.attackDmg +" damage." + Main.ANSI_RESET);
-                entities.get(currMonster.target).dealDamage(currMonster.attackDmg);
+            else {
+                System.out.println(currMonster.name + Main.ANSI_RED + " attacks " + Main.ANSI_RESET + entities.get(currMonster.target).name + "...");
+                if (entities.get(currMonster.target).hasEffect(StatusEffect.shielded)) {
+                    System.out.println(entities.get(currMonster.target).name + " is " + Main.ANSI_YELLOW + "shielded" + Main.ANSI_RESET + " and takes no damage.");
+                } else {
+                    System.out.println(entities.get(currMonster.target).name + " is " + Main.ANSI_RED + "hit for " + currMonster.attackDmg + " damage." + Main.ANSI_RESET);
+                    entities.get(currMonster.target).dealDamage(currMonster.attackDmg);
+                }
             }
         }
 
@@ -210,7 +217,7 @@ public class Game {
             case 4: /*cure heavy wounds*/  case 5: /*cure light wounds*/
                 System.out.println(playerMove.moveMaker.name + " casts " + Main.ANSI_GREEN + SpellLibrary.spellNames[playerMove.spellIndex] + Main.ANSI_RESET + " at " + entities.get(playerMove.spellTarget).name + " with his " + playerMove.hand + " hand...");
                 break;
-            case 6: /*Amnesia*/ case 7: /*Confusion*/ case 31: /*Fear*/ case 18: /*Remove enchantment */
+            case 6: /*Amnesia*/ case 7: /*Confusion*/ case 31: /*Fear*/ case 18: /*Remove enchantment */ case 13: /*Paralysis*/
                 System.out.println(playerMove.moveMaker.name + " casts" + Main.ANSI_PURPLE + " "+SpellLibrary.spellNames[playerMove.spellIndex] + Main.ANSI_RESET + " at " + entities.get(playerMove.spellTarget).name + " with his " + playerMove.hand + " hand...");
                 break;
             case 16: // shield
@@ -263,7 +270,7 @@ public class Game {
             }
         }
 
-        // check for counter_spell
+        // check dispel magic
         if(globalEffects.contains(GlobalEffects.dispelMagic) && playerMove.spellIndex != 42) // stab cannot be countered
         {
             System.out.println(SpellLibrary.spellNames[playerMove.spellIndex] + Main.ANSI_BLUE + " fizzles" + Main.ANSI_RESET + " due to dispel Magic!");
@@ -295,7 +302,7 @@ public class Game {
         }
 
         // Check for conflicting status: confusion, anmesia, charm person, charm monster, paralysis or fear
-        if(SpellLibrary.isStatusEffectSpell(playerMove.spellIndex) && ((spellTarget.hasConflictingStatusEffect()) ))
+        if(SpellLibrary.isStatusEffectSpell(playerMove.spellIndex) && ((spellTarget.hasConflictingStatusEffect(SpellLibrary.getStatusEffectFromIndex(playerMove.spellIndex))) ))
         {
             System.out.println(SpellLibrary.spellNames[playerMove.spellIndex] + " is " + Main.ANSI_YELLOW + "cancelled out" + Main.ANSI_RESET + " by other " +Main.ANSI_PURPLE+"enchantments"+Main.ANSI_RESET);
             spellTarget.addStatusEffect(StatusEffect.conflicting_status);
@@ -312,6 +319,7 @@ public class Game {
         Player ownerPlayer;
         StatusEffect newEffect;
         Entity currEntity;
+        int paralyzedHandIndex;
 
         switch (playerMove.spellIndex) {
             case -1:
@@ -369,6 +377,23 @@ public class Game {
                 entities.add(summon);
                 System.out.println(summon.name+Main.ANSI_CYAN+" springs into existence."+Main.ANSI_RESET +" It obeys "+ entities.get(summon.owner).name + "'s commands.");
                 break;
+            case 13: //Paralysis
+                //TODO: If already paralyzed, do not choose hand!
+                //TODO: Describe the paralysis to all players...
+                currEntity = entities.get(playerMove.spellTarget);
+                newEffect = StatusEffect.paralyzed;
+                if(currEntity instanceof Player) //If cast at a player, chose a hand
+                {
+                    paralyzedHandIndex = playerMove.moveMaker.getParalyzedHandIndexInput(currEntity.name);
+                    newEffect.initParalysis(paralyzedHandIndex);
+                    System.out.println(currEntity.name + "'s " + Hand.HANDS_INDEXED[paralyzedHandIndex] + " hand is " + Main.ANSI_PURPLE + "paralyzed!" + Main.ANSI_RESET);
+                }
+                else
+                {
+                    System.out.println(currEntity.name + " is " + Main.ANSI_PURPLE+ "paralyzed!" + Main.ANSI_RESET);
+                }
+                currEntity.addStatusEffect(newEffect);
+                break;
             case 15: //fireball
                 System.out.println(entities.get(playerMove.spellTarget).name + " is burned for " + Main.ANSI_RED + "5 damage." + Main.ANSI_RESET);
                 entities.get(playerMove.spellTarget).dealDamage(5);
@@ -380,7 +405,7 @@ public class Game {
             case 17: //surrender
                 break;
             case 18: //remove enchantment
-                if(entities.get(playerMove.spellTarget) instanceof Player) // Only removes playe enchants. Monsters will be destroyed after attacking.
+                if(entities.get(playerMove.spellTarget) instanceof Player) // Only removes player enchants. Monsters will be destroyed after attacking.
                 {
                     System.out.println("All " + Main.ANSI_PURPLE + "enchantments " + Main.ANSI_RESET + "on " + entities.get(playerMove.spellTarget).name + "are removed.");
                     entities.get(playerMove.spellTarget).clearStatusEffects();

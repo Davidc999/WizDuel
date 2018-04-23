@@ -27,11 +27,15 @@ public boolean hasEffect(StatusEffect effect)
     return statusEffects.contains(effect);
 }
 
-public boolean hasConflictingStatusEffect()
+public boolean hasConflictingStatusEffect(StatusEffect newStatus)
 {
-    return statusEffects.contains(StatusEffect.fear) || statusEffects.contains(StatusEffect.amnesia) ||
-            statusEffects.contains(StatusEffect.confusion) || statusEffects.contains(StatusEffect.conflicting_status) ||
-            statusEffects.contains(StatusEffect.paralyzed) || statusEffects.contains(StatusEffect.charmed);
+    for (StatusEffect effect: statusEffects) {
+        if(StatusEffect.isConflictingStatusEffect(effect) && effect != newStatus)
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 public void addStatusEffect(StatusEffect effect)
@@ -75,6 +79,13 @@ public int getConfusionHand()
     int confusionIndex = statusEffects.indexOf(StatusEffect.confusion);
     return statusEffects.get(confusionIndex).getConfusion_hand();
 }
+
+public int getParalyzedHandIndex()
+{
+    int paralysisIndex = statusEffects.indexOf(StatusEffect.paralyzed);
+    return statusEffects.get(paralysisIndex).getParalyzed_handIndex();
+}
+
 
 public int getConfusionGesture()
 {

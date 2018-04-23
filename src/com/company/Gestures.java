@@ -14,6 +14,21 @@ public enum Gestures {
         return (gesture == D) || (gesture == C) || (gesture == F) || (gesture == S);
     }
 
+    public static Gestures paralyzeGesture(Gestures gesture)
+    {
+        switch (gesture) {
+            case C:
+                return F;
+            case S:
+                return D;
+            case W:
+                return P;
+            default:
+                return gesture;
+        }
+
+    }
+
     public static Gestures getGestureByChar(char character)
     {
         for(Gestures m: Gestures.values())

@@ -14,7 +14,7 @@ public class SpellLibrary {
     public static boolean[] requiresTarget = {true, true, true, true, true, true, true, true, true, true, false, true, true, true, true, true, true, false, true, true, true, false,
             true, true, true, true, true, false, false, true, true, true, false, true, true, true, true, true, false, true, true, true, true};
     public static boolean[] reflectable = {false, false, false, true, false, false, true, true, true, true, false, false, true, true, false, true, false, false, false, false, false, true, true, false, false, false, true, false, false, false, false, true, false, true, true, false, true, false, false, false, false, false, false};
-    public static int[] spellPriority = {3, 999, 4, 5, 5, 5, 5, 5, 999, 999, 999, 999, 999, 999, 2, 5, 4, 1, 999, 999, 999, 999, 2, 999, 999, 5, 2, 5, 999, 999, 999, 5, 999, 5, 5, 2, 5, 2, 999, 999, 4, 2, 5 };
+    public static int[] spellPriority = {3, 999, 4, 5, 5, 5, 5, 5, 999, 999, 999, 999, 999, 4, 2, 5, 4, 1, 999, 999, 999, 999, 2, 999, 999, 5, 2, 5, 999, 999, 999, 5, 999, 5, 5, 2, 5, 2, 999, 999, 4, 2, 5 };
 
     public static boolean isStatusEffectSpell(int spellindex)
     {
@@ -24,5 +24,19 @@ public class SpellLibrary {
     public static boolean isTargetableMonsterSpell(int spellindex)
     {
         return (spellindex == 14) || (spellindex == 22) || (spellindex == 26) || (spellindex == 35);
+    }
+
+    public static StatusEffect getStatusEffectFromIndex(int spellindex)
+    {
+        switch (spellindex) {
+            case 6: return StatusEffect.amnesia;
+            case 7: return StatusEffect.confusion;
+            case 31: return StatusEffect.fear;
+            case 13: return StatusEffect.paralyzed;
+            case 20: return StatusEffect.charmed;
+            case 21: return StatusEffect.charmed;
+            default:
+                return null;
+        }
     }
 }

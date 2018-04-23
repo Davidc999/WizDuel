@@ -8,8 +8,7 @@ public class Player extends Entity{
 
     private static Scanner reader = new Scanner(System.in);
 
-    private List<Gestures> lastGesturesLeft; // This should be up to length 8
-    private List<Gestures> lastGesturesRight; // This should be up to length 8
+    private List<Gestures>[] lastGestures = new List[2]; // This should be up to length 8
     private SpellTree[] spellTrees = new SpellTree[2];
     public boolean castShortLightning = false;
 
@@ -21,8 +20,8 @@ public class Player extends Entity{
         super(15,id,"Player "+(id+1));
         spellTrees[Hand.left.handIndex] = new SpellTree();
         spellTrees[Hand.right.handIndex] = new SpellTree();
-        lastGesturesLeft  = new ArrayList<Gestures>(8);
-        lastGesturesRight = new ArrayList<Gestures>(8);
+        lastGestures[Hand.left.handIndex]  = new ArrayList<Gestures>(8);
+        lastGestures[Hand.right.handIndex] = new ArrayList<Gestures>(8);
     }
 
 
@@ -30,14 +29,35 @@ public class Player extends Entity{
     {
         String leftInput, rightInput;
         Gestures leftGest, rightGest;
+        int paralyzedHandIndex;
 
         List<PlayerMove> playerMoves = new ArrayList<>(3);
 
         //Get player input
         if(this.hasEffect(StatusEffect.amnesia)) { // Handle amnesia
             System.out.println(name + ", you are suffering from "+Main.ANSI_PURPLE+"amnesia"+Main.ANSI_RESET+" and so must repeat the previous gestures!");
-            leftGest = lastGesturesLeft.get(lastGesturesLeft.size()-1);
-            rightGest = lastGesturesRight.get(lastGesturesRight.size()-1);
+            leftGest = lastGestures[Hand.left.handIndex].get(lastGestures[Hand.left.handIndex].size()-1);
+            rightGest = lastGestures[Hand.right.handIndex].get(lastGestures[Hand.right.handIndex].size()-1);
+        }
+        else if(this.hasEffect(StatusEffect.paralyzed)) { // Handle paralysis
+            paralyzedHandIndex = getParalyzedHandIndex();
+            leftGest = lastGestures[Hand.left.handIndex].get(lastGestures[Hand.left.handIndex].size()-1);
+            rightGest = lastGestures[Hand.right.handIndex].get(lastGestures[Hand.right.handIndex].size()-1);
+            System.out.println(name + ", your " + Hand.HANDS_INDEXED[paralyzedHandIndex] + " hand is "+Main.ANSI_PURPLE+"Paralyzed."+Main.ANSI_RESET+" Enter a single gesture for the other hand:");
+            if(paralyzedHandIndex == Hand.left.handIndex) // paralyze left hand, get right
+            {
+                rightInput = reader.next(".").toUpperCase();
+                rightGest = Gestures.getGestureByChar(rightInput.charAt(0));
+                leftGest = Gestures.paralyzeGesture(leftGest);
+                System.out.println(name + ", your " + Hand.HANDS_INDEXED[paralyzedHandIndex] + " hand is "+Main.ANSI_PURPLE+"frozen"+Main.ANSI_RESET+" in a " + leftGest + " gesture.");
+            }
+            else // paralyze right hand, get left
+            {
+                leftInput = reader.next(".").toUpperCase();
+                leftGest = Gestures.getGestureByChar(leftInput.charAt(0));
+                rightGest = Gestures.paralyzeGesture(rightGest);
+                System.out.println(name + ", your " + Hand.HANDS_INDEXED[paralyzedHandIndex] + " hand is "+Main.ANSI_PURPLE+"frozen"+Main.ANSI_RESET+" in a " + rightGest + " gesture.");
+            }
         }
         else //Regular input
         {
@@ -71,6 +91,14 @@ public class Player extends Entity{
         return playerMoves;
     }
 
+    public int getParalyzedHandIndexInput(String targetName)
+    {
+        System.out.println(name + " you have succesfully cast paralyze at " + targetName + ". Select which hand to paralyze: ");
+        System.out.println("1. Left");
+        System.out.println("2. Right");
+        return reader.nextInt() - 1;
+    }
+
     public List<PlayerMove> handleConfusion(List<Entity> targetList)
     {
         String leftInput, rightInput;
@@ -83,8 +111,8 @@ public class Player extends Entity{
             initConfusion();
 
         //Undo last move
-        prevLeftGest = lastGesturesLeft.remove(lastGesturesLeft.size()-1);
-        prevRightGest = lastGesturesRight.remove(lastGesturesRight.size()-1);
+        prevLeftGest = lastGestures[Hand.left.handIndex].remove(lastGestures[Hand.left.handIndex].size()-1);
+        prevRightGest = lastGestures[Hand.right.handIndex].remove(lastGestures[Hand.right.handIndex].size()-1);
         spellTrees[Hand.left.handIndex].walkBack();
         spellTrees[Hand.right.handIndex].walkBack();
 
@@ -294,13 +322,13 @@ public class Player extends Entity{
 
     public void addLastGestures(Gestures left, Gestures right)
     {
-        if(lastGesturesLeft.size() == 8)
-            lastGesturesLeft.remove(0);
-        lastGesturesLeft.add(left);
+        if(lastGestures[Hand.left.handIndex].size() == 8)
+            lastGestures[Hand.left.handIndex].remove(0);
+        lastGestures[Hand.left.handIndex].add(left);
 
-        if(lastGesturesRight.size() == 8)
-            lastGesturesRight.remove(0);
-        lastGesturesRight.add(right);
+        if(lastGestures[Hand.right.handIndex].size() == 8)
+            lastGestures[Hand.right.handIndex].remove(0);
+        lastGestures[Hand.right.handIndex].add(right);
     }
 
     public void resetTrees()
@@ -311,8 +339,8 @@ public class Player extends Entity{
 
     public String getMoveString(int Lineindex)
     {
-        if(Lineindex < lastGesturesRight.size())
-            return lastGesturesLeft.get(Lineindex).gestureChar + " " + lastGesturesRight.get(Lineindex).gestureChar;
+        if(Lineindex < lastGestures[Hand.right.handIndex].size())
+            return lastGestures[Hand.left.handIndex].get(Lineindex).gestureChar + " " + lastGestures[Hand.right.handIndex].get(Lineindex).gestureChar;
         else
             return " ";
     }

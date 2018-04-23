@@ -43,9 +43,21 @@ public enum StatusEffect {
         return confusion_hand;
     }
 
+    public int getParalyzed_handIndex()
+    {
+        return paralyzed_handIndex;
+    }
+
     public int getConfusion_gesture()
     {
         return confusion_gesture;
+    }
+
+    public static boolean isConflictingStatusEffect(StatusEffect status)
+    {
+        return (status == StatusEffect.fear) || (status == StatusEffect.amnesia) ||
+                (status == StatusEffect.confusion) || (status == StatusEffect.conflicting_status) ||
+                (status == StatusEffect.paralyzed) || (status == StatusEffect.charmed);
     }
 
 }

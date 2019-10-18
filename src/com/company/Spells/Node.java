@@ -1,4 +1,6 @@
-package com.company;
+package com.company.Spells;
+
+import com.company.Gestures;
 
 import java.util.ArrayList;
 import java.util.EnumMap;

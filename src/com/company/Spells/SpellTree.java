@@ -1,4 +1,6 @@
-package com.company;
+package com.company.Spells;
+
+import com.company.Gestures;
 
 public class SpellTree {
 
@@ -9,7 +11,7 @@ public class SpellTree {
 
     //Moves: D(0,'D'),P(1,'P'),S(2,'S'),W(3,'W'),C(4,'C'),F(5,'F'),d(6,'d'),p(7,'p'),s(8,'s'),w(9,'w'),stab(10,'>'),nothing(11,'-'); (8 unique, 12 with doubles)
 
-    SpellTree()
+    public SpellTree()
     {
         root = new Node("");
         currLocation = root;
@@ -94,7 +96,7 @@ public class SpellTree {
             }
             else
             {
-                gestSequenceToCheck = (root.name + gest.gestureChar).toUpperCase();
+                gestSequenceToCheck = (root.name + gest.getGestureChar()).toUpperCase();
                 shortcut = deepestChild(gestSequenceToCheck); //The full sequence may still be relevant now that it's all uppercase!
                 if(shortcut != null)
                 {
@@ -140,9 +142,9 @@ public class SpellTree {
         }
 
         // Handle double gestures
-        if((thisGesture == otherGesture) && (thisGesture.gestureIndex <= 3))
+        if((thisGesture == otherGesture) && (thisGesture.getGestureIndex() <= 3))
         { //Try to walk to a double handed node
-            nodeToCheck = currLocation.getChild(Gestures.GESTURES_INDEXED[thisGesture.gestureIndex + Gestures.doubleOffset]);
+            nodeToCheck = currLocation.getChild(Gestures.GESTURES_INDEXED[thisGesture.getGestureIndex() + Gestures.doubleOffset]);
             if(nodeToCheck == null) //On fail, relax to single-handed node
             {
                 nodeToCheck = currLocation.getChild(thisGesture);

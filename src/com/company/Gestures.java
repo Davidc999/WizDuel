@@ -45,4 +45,12 @@ public enum Gestures {
         this.gestureChar = gestureChar;
         this.gestureIndex = gestureIndex;
     }
+
+    public char getGestureChar() {
+        return gestureChar;
+    }
+
+    public int getGestureIndex() {
+        return gestureIndex;
+    }
 }

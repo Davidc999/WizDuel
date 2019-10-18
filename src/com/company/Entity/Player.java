@@ -1,4 +1,8 @@
-package com.company;
+package com.company.Entity;
+
+import com.company.*;
+import com.company.Spells.SpellLibrary;
+import com.company.Spells.SpellTree;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,7 +19,7 @@ public class Player extends Entity{
     //Data for confusion
     private int[] prevTargets = {-1,-1}; //prevTargets[Hand.left.handIndex]=-1, prevTargets[Hand.right.handIndex] =-1;
 
-    Player(int id)
+    public Player(int id)
     {
         super(15,id,"Player "+(id+1));
         spellTrees[Hand.left.handIndex] = new SpellTree();
@@ -238,7 +242,7 @@ public class Player extends Entity{
             if(forceTarget) // If we have a forced target (due to confusion)
                 playerMove.spellTarget = prevTargets[hand.handIndex];
             else
-                playerMove.spellTarget = selectTarget(playerMove.spellIndex,targetList,"Who do you wish to target with "+SpellLibrary.spellNames[playerMove.spellIndex ]+"?");
+                playerMove.spellTarget = selectTarget(playerMove.spellIndex,targetList,"Who do you wish to target with "+ SpellLibrary.spellNames[playerMove.spellIndex ]+"?");
 
             if(SpellLibrary.isTargetableMonsterSpell(playerMove.spellIndex))
             {
@@ -340,7 +344,7 @@ public class Player extends Entity{
     public String getMoveString(int Lineindex)
     {
         if(Lineindex < lastGestures[Hand.right.handIndex].size())
-            return lastGestures[Hand.left.handIndex].get(Lineindex).gestureChar + " " + lastGestures[Hand.right.handIndex].get(Lineindex).gestureChar;
+            return lastGestures[Hand.left.handIndex].get(Lineindex).getGestureChar() + " " + lastGestures[Hand.right.handIndex].get(Lineindex).getGestureChar();
         else
             return " ";
     }

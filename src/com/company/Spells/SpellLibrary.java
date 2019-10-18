@@ -1,4 +1,6 @@
-package com.company;
+package com.company.Spells;
+
+import com.company.StatusEffect;
 
 public class SpellLibrary {
     public static String[] spellList = {"CDPW","CSWWS","Cw","DFFDD","DFPW","DFW","DPP","DSF","DSFFFC","DWFFd","DWSSSP","DWWFWC","DWWFWD","FFF","FPSFW","FSSDD","P","p","PDWP","PPws","PSDD",

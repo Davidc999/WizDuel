@@ -1,11 +1,11 @@
-package com.company;
+package com.company.Entity;
 
 public class Monster extends Entity {
 
     private static int totalMonstersSummoned =0;
     int target, owner, attackDmg;
 
-    Monster(int hp, int owner, int target, String name)
+    public Monster(int hp, int owner, int target, String name)
     {
         super(hp,totalMonstersSummoned+1,name+" "+(totalMonstersSummoned+1));
         this.attackDmg = hp;
@@ -18,5 +18,10 @@ public class Monster extends Entity {
     {
         this.target = target;
     }
+    public int getTarget() {return this.target;}
+    public int getAttackDmg() {return this.attackDmg;}
 
+    public int getOwner() {
+        return owner;
+    }
 }

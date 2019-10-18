@@ -1,5 +1,10 @@
 package com.company;
 
+import com.company.Entity.Entity;
+import com.company.Entity.Monster;
+import com.company.Entity.Player;
+import com.company.Spells.SpellLibrary;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -85,12 +90,12 @@ public class Game {
         for (Iterator<Entity> iterator = entities.iterator(); iterator.hasNext();)
         {
             entity = iterator.next();
-            if(entity.hp <= 0) //Entity has died
+            if(entity.getHp() <= 0) //Entity has died
             {
                 if(entity instanceof Player) //A player has died, game ends!
                 {
-                    System.out.println("Player " + entity.id + Main.ANSI_RED + " drops DEAD!" + Main.ANSI_RESET);
-                    System.out.println("The game is over! Player " + (3 - entity.id) + " is the winner!");
+                    System.out.println("Player " + entity.getId() + Main.ANSI_RED + " drops DEAD!" + Main.ANSI_RESET);
+                    System.out.println("The game is over! Player " + (3 - entity.getId()) + " is the winner!");
                     System.exit(0);
                 }
                 else //Monster
@@ -118,12 +123,13 @@ public class Game {
                 System.out.println(currMonster.name + " is " + Main.ANSI_PURPLE + "paralyzed" + Main.ANSI_RESET + " and cannot attack.");
             }
             else {
-                System.out.println(currMonster.name + Main.ANSI_RED + " attacks " + Main.ANSI_RESET + entities.get(currMonster.target).name + "...");
-                if (entities.get(currMonster.target).hasEffect(StatusEffect.shielded)) {
-                    System.out.println(entities.get(currMonster.target).name + " is " + Main.ANSI_YELLOW + "shielded" + Main.ANSI_RESET + " and takes no damage.");
+                int currMonsterTarget = currMonster.getTarget();
+                System.out.println(currMonster.name + Main.ANSI_RED + " attacks " + Main.ANSI_RESET + entities.get(currMonsterTarget).name + "...");
+                if (entities.get(currMonsterTarget).hasEffect(StatusEffect.shielded)) {
+                    System.out.println(entities.get(currMonsterTarget).name + " is " + Main.ANSI_YELLOW + "shielded" + Main.ANSI_RESET + " and takes no damage.");
                 } else {
-                    System.out.println(entities.get(currMonster.target).name + " is " + Main.ANSI_RED + "hit for " + currMonster.attackDmg + " damage." + Main.ANSI_RESET);
-                    entities.get(currMonster.target).dealDamage(currMonster.attackDmg);
+                    System.out.println(entities.get(currMonsterTarget).name + " is " + Main.ANSI_RED + "hit for " + currMonster.getAttackDmg() + " damage." + Main.ANSI_RESET);
+                    entities.get(currMonsterTarget).dealDamage(currMonster.getAttackDmg());
                 }
             }
         }
@@ -174,16 +180,16 @@ public class Game {
     {
         if(playerMove.spellTarget == -1) //target player1 New mosnter
         {
-            if(player1.newMonster != null)
-                playerMove.spellTarget = entities.lastIndexOf(player1.newMonster);
+            if(player1.getNewMonster() != null)
+                playerMove.spellTarget = entities.lastIndexOf(player1.getNewMonster());
             else
                 playerMove.spellTarget = -3;
         }
 
         if(playerMove.spellTarget == -2) //target player1 New mosnter
         {
-            if(player2.newMonster != null)
-                playerMove.spellTarget = entities.lastIndexOf(player2.newMonster);
+            if(player2.getNewMonster() != null)
+                playerMove.spellTarget = entities.lastIndexOf(player2.getNewMonster());
             else
                 playerMove.spellTarget = -3;
         }
@@ -191,7 +197,7 @@ public class Game {
         if(playerMove.spellTarget == -3) // target does not exist
         {
             //TODO: different 'fizzle' for stab!
-            System.out.println(playerMove.moveMaker.name + " attempted to cast " +SpellLibrary.spellNames[playerMove.spellIndex] +" at a target that doesn't exist! The spell fizzles!");
+            System.out.println(playerMove.moveMaker.name + " attempted to cast " + SpellLibrary.spellNames[playerMove.spellIndex] +" at a target that doesn't exist! The spell fizzles!");
             return false;
         }
         else
@@ -225,7 +231,7 @@ public class Game {
                 break;
             case 17: //surrender
                 System.out.println(playerMove.moveMaker.name + Main.ANSI_GREEN + " Surrenders!" + Main.ANSI_RESET);
-                System.out.println("The game is over! Player " + (2 - playerMove.moveMaker.id) + " is the winner!");
+                System.out.println("The game is over! Player " + (2 - playerMove.moveMaker.getId()) + " is the winner!");
                 System.exit(0);
                 break;
             case 25: /*Missile */ case 15: /* Fireball */
@@ -258,14 +264,14 @@ public class Game {
         Entity spellTarget = entities.get(playerMove.spellTarget);
         // Short lightning bolt - cast only once!
         if(playerMove.spellIndex == 33) {
-            Player castingPlayer = (Player) entities.get(playerMove.moveMaker.id);
+            Player castingPlayer = (Player) entities.get(playerMove.moveMaker.getId());
             if (!castingPlayer.castShortLightning) // If this version has not yet been cast
             {
                 castingPlayer.castShortLightning = true;
                 return true;
             }
             else {
-                System.out.println("Player " + castingPlayer.id + " has already cast this spell. The spell fizzles uselessly.");
+                System.out.println("Player " + castingPlayer.getId() + " has already cast this spell. The spell fizzles uselessly.");
                 return false;
             }
         }
@@ -296,7 +302,7 @@ public class Game {
         if(spellTarget.hasEffect(StatusEffect.magic_mirror) &&(SpellLibrary.reflectable[playerMove.spellIndex]))
         {
             System.out.println(SpellLibrary.spellNames[playerMove.spellIndex] + " is " + Main.ANSI_YELLOW + "reflected" + Main.ANSI_RESET + " by the magic mirror!");
-            playerMove.spellTarget = playerMove.moveMaker.id;
+            playerMove.spellTarget = playerMove.moveMaker.getId();
             applySpell(playerMove);
             return false;
         }
@@ -366,16 +372,16 @@ public class Game {
                 break;
             case 14: /*Summon troll*/
                 if(entities.get(playerMove.newMonsterTarget) instanceof Player) // Put under comand of player
-                {summon = new Monster(3,playerMove.moveMaker.id,playerMove.newMonsterTarget,"Troll");}
+                {summon = new Monster(3,playerMove.moveMaker.getId(),playerMove.newMonsterTarget,"Troll");}
                 else // Put under command of monster's owner;
                 {
                     ownerMonster = (Monster)entities.get(playerMove.newMonsterTarget);
-                    summon = new Monster(3, ownerMonster.owner, playerMove.newMonsterTarget, "Troll");
+                    summon = new Monster(3, ownerMonster.getOwner(), playerMove.newMonsterTarget, "Troll");
                 }
-                ownerPlayer = (Player)entities.get(summon.owner);
-                ownerPlayer.newMonster = summon;
+                ownerPlayer = (Player)entities.get(summon.getOwner());
+                ownerPlayer.setNewMonster(summon);
                 entities.add(summon);
-                System.out.println(summon.name+Main.ANSI_CYAN+" springs into existence."+Main.ANSI_RESET +" It obeys "+ entities.get(summon.owner).name + "'s commands.");
+                System.out.println(summon.name+Main.ANSI_CYAN+" springs into existence."+Main.ANSI_RESET +" It obeys "+ entities.get(summon.getOwner()).name + "'s commands.");
                 break;
             case 13: //Paralysis
                 //TODO: If already paralyzed, do not choose hand!
@@ -414,16 +420,16 @@ public class Game {
                 break;
             case 22: /*Summon Ogre*/
                 if(entities.get(playerMove.newMonsterTarget) instanceof Player) // Put under comand of player
-                {summon = new Monster(2,playerMove.moveMaker.id,playerMove.newMonsterTarget,"Ogre");}
+                {summon = new Monster(2,playerMove.moveMaker.getId(),playerMove.newMonsterTarget,"Ogre");}
                 else // Put under command of monster's owner;
                 {
                     ownerMonster = (Monster)entities.get(playerMove.newMonsterTarget);
-                    summon = new Monster(2, ownerMonster.owner, playerMove.newMonsterTarget, "Ogre");
+                    summon = new Monster(2, ownerMonster.getOwner(), playerMove.newMonsterTarget, "Ogre");
                 }
-                ownerPlayer = (Player)entities.get(summon.owner);
-                ownerPlayer.newMonster = summon;
+                ownerPlayer = (Player)entities.get(summon.getOwner());
+                ownerPlayer.setNewMonster(summon);
                 entities.add(summon);
-                System.out.println(summon.name+Main.ANSI_CYAN+" springs into existence."+Main.ANSI_RESET +" It obeys "+ entities.get(summon.owner).name + "'s commands.");
+                System.out.println(summon.name+Main.ANSI_CYAN+" springs into existence."+Main.ANSI_RESET +" It obeys "+ entities.get(summon.getOwner()).name + "'s commands.");
                 break;
             case 25: //Missile
                 System.out.println(entities.get(playerMove.spellTarget).name + " takes " + Main.ANSI_RED + "1 damage " + Main.ANSI_RESET + "from missile.");
@@ -431,19 +437,19 @@ public class Game {
                 break;
             case 26: /*Summon goblin*/
                 if(entities.get(playerMove.newMonsterTarget) instanceof Player) // Put under comand of player
-                {summon = new Monster(1,playerMove.moveMaker.id,playerMove.newMonsterTarget,"Goblin");}
+                {summon = new Monster(1,playerMove.moveMaker.getId(),playerMove.newMonsterTarget,"Goblin");}
                 else // Put under command of monster's owner;
                 {
                     ownerMonster = (Monster)entities.get(playerMove.newMonsterTarget);
-                    summon = new Monster(1, ownerMonster.owner, playerMove.newMonsterTarget, "Goblin");
+                    summon = new Monster(1, ownerMonster.getOwner(), playerMove.newMonsterTarget, "Goblin");
                 }
-                ownerPlayer = (Player)entities.get(summon.owner);
-                ownerPlayer.newMonster = summon;
+                ownerPlayer = (Player)entities.get(summon.getOwner());
+                ownerPlayer.setNewMonster(summon);
                 entities.add(summon);
-                System.out.println(summon.name+Main.ANSI_CYAN+" springs into existence."+Main.ANSI_RESET +" It obeys "+ entities.get(summon.owner).name + "'s commands.");
+                System.out.println(summon.name+Main.ANSI_CYAN+" springs into existence."+Main.ANSI_RESET +" It obeys "+ entities.get(summon.getOwner()).name + "'s commands.");
                 break;
             case 27: //anti-spell
-                Player target = (Player)entities.get(3-playerMove.moveMaker.id);
+                Player target = (Player)entities.get(3-playerMove.moveMaker.getId());
                 System.out.println("All of Player "+target.name + "'s previous gestures are " + Main.ANSI_BLUE + "nullified."+Main.ANSI_RESET);
                 target.resetTrees();
                 break;
@@ -452,10 +458,10 @@ public class Game {
                 entities.get(playerMove.spellTarget).addStatusEffect(StatusEffect.fear);
                 break;
             case 33: // Short lightning bolt - cast only once!
-                Player castingPlayer = (Player) entities.get(playerMove.moveMaker.id);
+                Player castingPlayer = (Player) entities.get(playerMove.moveMaker.getId());
                 System.out.println(entities.get(playerMove.spellTarget).name + " is zapped for " + Main.ANSI_RED + "5 damage." + Main.ANSI_RESET);
                 entities.get(playerMove.spellTarget).dealDamage(5);
-                System.out.println("This spell cannot be cast again by Player " + castingPlayer.id);
+                System.out.println("This spell cannot be cast again by Player " + castingPlayer.getId());
                 castingPlayer.castShortLightning = true;
                 break;
             case 34: //Cause light wounds
@@ -464,16 +470,16 @@ public class Game {
                 break;
             case 35: /*Summon Giant*/
                 if(entities.get(playerMove.newMonsterTarget) instanceof Player) // Put under comand of player
-                {summon = new Monster(4,playerMove.moveMaker.id,playerMove.newMonsterTarget,"Giant");}
+                {summon = new Monster(4,playerMove.moveMaker.getId(),playerMove.newMonsterTarget,"Giant");}
                 else // Put under command of monster's owner;
                 {
                     ownerMonster = (Monster)entities.get(playerMove.newMonsterTarget);
-                    summon = new Monster(4, ownerMonster.owner, playerMove.newMonsterTarget, "Giant");
+                    summon = new Monster(4, ownerMonster.getOwner(), playerMove.newMonsterTarget, "Giant");
                 }
-                ownerPlayer = (Player)entities.get(summon.owner);
-                ownerPlayer.newMonster = summon;
+                ownerPlayer = (Player)entities.get(summon.getOwner());
+                ownerPlayer.setNewMonster(summon);
                 entities.add(summon);
-                System.out.println(summon.name+Main.ANSI_CYAN+" springs into existence."+Main.ANSI_RESET +" It obeys "+ entities.get(summon.owner).name + "'s commands.");
+                System.out.println(summon.name+Main.ANSI_CYAN+" springs into existence."+Main.ANSI_RESET +" It obeys "+ entities.get(summon.getOwner()).name + "'s commands.");
                 break;
             case 36: //Cause heavy wounds
                 System.out.println(entities.get(playerMove.spellTarget).name + " takes " + Main.ANSI_RED + "3 damage " + Main.ANSI_RESET + "from the spell.");

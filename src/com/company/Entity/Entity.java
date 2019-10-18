@@ -1,4 +1,6 @@
-package com.company;
+package com.company.Entity;
+
+import com.company.StatusEffect;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -103,4 +105,19 @@ public void heal(int healVal)
     hp = Math.min(initialHp,hp + healVal);
 }
 
+    public int getHp() {
+        return hp;
+    }
+
+    public int getId(){
+        return id;
+    }
+
+    public Monster getNewMonster() {
+        return newMonster;
+    }
+
+    public void setNewMonster(Monster newMonster) {
+        this.newMonster = newMonster;
+    }
 }

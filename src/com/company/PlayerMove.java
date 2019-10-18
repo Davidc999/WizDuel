@@ -1,5 +1,8 @@
 package com.company;
 
+import com.company.Entity.Player;
+import com.company.Spells.SpellLibrary;
+
 public class PlayerMove implements Comparable<PlayerMove> {
     public int spellIndex;
     public int spellTarget;
